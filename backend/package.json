@@ -1,0 +1,20 @@
+{
+  "name": "mynt-budget-tracker",
+  "version": "1.0.0",
+  "description": "Serverless budget tracker backend",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "serverless deploy"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1338.0",
+    "plaid": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.92",
+    "@types/node": "^18.11.18",
+    "serverless": "^3.28.1",
+    "serverless-plugin-typescript": "^2.1.4",
+    "typescript": "^4.9.4"
+  }
+} 
