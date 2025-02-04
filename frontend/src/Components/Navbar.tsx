@@ -1,21 +1,29 @@
 import React from 'react';
+import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { logout } from '../store/authSlice';
 
 const Navbar: React.FC = () => {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem('isLoggedIn');
+    dispatch(logout());
     navigate('/');
   };
 
   return (
-    <header className="bg-white shadow p-4 flex items-center justify-between">
-      <h1 className="text-2xl font-semibold">Mint Dashboard</h1>
-      <button onClick={handleLogout} className="px-4 py-2 bg-red-500 text-white rounded">
-        Logout
-      </button>
-    </header>
+    <nav className="bg-white shadow-md p-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-xl font-bold">Finance Tracker</h1>
+        <button
+          onClick={handleLogout}
+          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+        >
+          Logout
+        </button>
+      </div>
+    </nav>
   );
 };
 
