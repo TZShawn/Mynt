@@ -7,6 +7,7 @@
     "deploy": "serverless deploy"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.741.0",
     "aws-sdk": "^2.1338.0",
     "dotenv": "^16.4.7",
     "plaid": "^12.0.0",

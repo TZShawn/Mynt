@@ -9,6 +9,7 @@ import DashboardPage from './Pages/DashboardPage';
 import BudgetPage from './Pages/BudgetPage';
 import TransactionsPage from './Pages/TransactionsPage';
 import AccountsPage from './Pages/Accounts';
+import SignUpPage from './Pages/SignUpPage';
 import { RootState } from './store/store';
 
 
@@ -30,6 +31,7 @@ const App: React.FC = () => {
               <Route path="/budget" element={isLoggedIn ? <BudgetPage /> : <Navigate to="/login" />} />
               <Route path="/transactions" element={isLoggedIn ? <TransactionsPage /> : <Navigate to="/login" />} />
               <Route path="/accounts" element={isLoggedIn ? <AccountsPage /> : <Navigate to="/login" />} />
+              <Route path="/signup" element={<SignUpPage />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </div>

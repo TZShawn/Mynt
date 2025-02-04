@@ -1,5 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
+import { authenticateUser, signUpUser } from '../utils/cognito';
 
 const cognito = new CognitoIdentityServiceProvider();
 const USER_POOL_ID = process.env.USER_POOL_ID!;
@@ -106,5 +107,40 @@ export const signIn = async (event: APIGatewayProxyEvent): Promise<APIGatewayPro
       headers: corsHeaders,
       body: JSON.stringify({ error: error.message }),
     };
+  }
+};
+
+export const handleLogin = async (req: Request) => {
+  const body: any = await req.json();
+  const username = body.username as string;
+  const password = body.password as string;
+  
+  if (!username || !password) {
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'Username and password are required' 
+    }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  
+  try {
+    const authResult = await authenticateUser(username, password);
+    return new Response(JSON.stringify({ 
+      success: true, 
+      token: authResult.AccessToken,
+      refreshToken: authResult.RefreshToken
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'Authentication failed' 
+    }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }; 
