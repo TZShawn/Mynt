@@ -36,7 +36,7 @@ export const signUp = async (event: APIGatewayProxyEvent): Promise<APIGatewayPro
         userSub: result.UserSub,
       }),
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in signUp:', error);
     return {
       statusCode: 500,
@@ -63,7 +63,7 @@ export const confirmSignUp = async (event: APIGatewayProxyEvent): Promise<APIGat
       headers: corsHeaders,
       body: JSON.stringify({ message: 'Email confirmed successfully' }),
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in confirmSignUp:', error);
     return {
       statusCode: 500,
@@ -99,7 +99,7 @@ export const signIn = async (event: APIGatewayProxyEvent): Promise<APIGatewayPro
         },
       }),
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in signIn:', error);
     return {
       statusCode: 500,

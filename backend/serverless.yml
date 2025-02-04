@@ -1,6 +1,7 @@
 service: mynt-budget-tracker
 
-frameworkVersion: '3'
+plugins:
+  - serverless-dotenv-plugin
 
 provider:
   name: aws
@@ -8,9 +9,9 @@ provider:
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
   environment:
-    PLAID_CLIENT_ID: ${env:PLAID_CLIENT_ID}
-    PLAID_SECRET: ${env:PLAID_SECRET}
-    PLAID_ENV: ${env:PLAID_ENV, 'sandbox'}
+    PLAIDCLIENTID: ${env:PLAIDCLIENTID}
+    PLAIDSECRET: ${env:PLAIDSECRET}
+    PLAIDENV: ${env:PLAIDENV, 'sandbox'}
     USER_TABLE: ${self:service}-users-${sls:stage}
     USER_POOL_ID: !Ref UserPool
     USER_POOL_CLIENT_ID: !Ref UserPoolClient
@@ -128,7 +129,6 @@ resources:
           - ALLOW_REFRESH_TOKEN_AUTH
         SupportedIdentityProviders:
           - COGNITO
-          - Google
         CallbackURLs:
           - http://localhost:3000/callback
           - https://your-production-domain.com/callback
@@ -151,19 +151,24 @@ resources:
         IdentitySource: method.request.header.Authorization
         RestApiId: !Ref ApiGatewayRestApi
         ProviderARNs:
-          - !GetAtt UserPool.Arn 
+          - !GetAtt UserPool.Arn
 
-    UserPoolIdentityProvider:
-      Type: AWS::Cognito::UserPoolIdentityProvider
-      Properties:
-        UserPoolId: !Ref UserPool
-        ProviderName: Google
-        ProviderType: Google
-        ProviderDetails:
-          client_id: ${env:GOOGLE_CLIENT_ID}
-          client_secret: ${env:GOOGLE_CLIENT_SECRET}
-          authorize_scopes: email profile openid
-        AttributeMapping:
-          email: email
-          given_name: given_name
-          family_name: family_name 
+    # UserPoolIdentityProvider:
+    #   Type: AWS::Cognito::UserPoolIdentityProvider
+    #   Properties:
+    #     UserPoolId: !Ref UserPool
+    #     ProviderName: Google
+    #     ProviderType: Google
+    #     ProviderDetails:
+    #       client_id: ${env:GOOGLE_CLIENT_ID}
+    #       client_secret: ${env:GOOGLE_CLIENT_SECRET}
+    #       authorize_scopes: email profile openid
+    #     AttributeMapping:
+    #       email: email
+    #       given_name: given_name
+    #       family_name: family_name 
+
+custom:
+  dotenv:
+    path: ./.env  # Relative to serverless.yml location
+    logging: true # This will show debug logs about env loading
