@@ -2,6 +2,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { plaidClient } from '../utils/plaid';
 import { saveUserToken, getUserToken } from '../utils/dynamodb';
 import { APIResponse, TransactionRequest } from '../types/plaid';
+import { CountryCode, Products } from 'plaid';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,11 +16,11 @@ export const createLinkToken = async (event: APIGatewayProxyEvent): Promise<APIG
     const response = await plaidClient.linkTokenCreate({
       user: { client_user_id: userId },
       client_name: 'Mynt Budget Tracker',
-      products: ['transactions'],
-      country_codes: ['US'],
+      products: process.env.PLAID_PRODUCTS?.split(',') as Products[],
+      country_codes: process.env.PLAID_COUNTRY_CODES?.split(',') as CountryCode[],
       language: 'en',
     });
-
+    
     return {
       statusCode: 200,
       headers: corsHeaders,
