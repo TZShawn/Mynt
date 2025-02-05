@@ -2,21 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setLoggedInUser } from '../store/authSlice';
-import { Amplify, Auth } from 'aws-amplify';
-
-// Configure Amplify
-Amplify.configure({
-  Auth: {
-    region: process.env.COGNITO_REGION,
-    userPoolId: process.env.COGNITO_USER_POOL_ID,
-    userPoolWebClientId: process.env.COGNITO_CLIENT_ID,
-  },
-});
+import { signIn } from 'aws-amplify/auth';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [error, setError] = useState<string>('');
+  const [signInError, setSignInError] = useState<boolean>(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -27,15 +19,19 @@ const LoginPage: React.FC = () => {
     const password = formData.get('password') as string;
 
     try {
-      const user = await Auth.signIn(username, password);
-      
-      dispatch(setLoggedInUser({
-        id: user.attributes.sub,
-        email: user.attributes.email,
-        name: username,
-      }));
-
-      navigate('/dashboard');
+      const signInOutput = await signIn({ username, password });
+      console.log(signInOutput);
+      if (signInOutput.isSignedIn === true) {
+        dispatch(setLoggedInUser({
+          id: username,
+          email: username,
+          name: username,
+        }));
+        
+        navigate('/dashboard');
+      } else {
+        setSignInError(true);
+      }
     } catch (error) {
       console.error('Error signing in:', error);
       setError('Invalid username or password');
@@ -75,6 +71,12 @@ const LoginPage: React.FC = () => {
             Sign In
           </button>
         </form>
+
+        {signInError && (
+          <div className="mb-4 p-2 text-red-500 text-sm text-center bg-red-50 rounded">
+            Invalid username or password
+          </div>
+        )}
 
         <p className="mt-4 text-center text-sm text-gray-600">
           Don't have an account?{' '}

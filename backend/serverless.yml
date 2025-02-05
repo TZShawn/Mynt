@@ -13,8 +13,8 @@ provider:
     PLAIDSECRET: ${env:PLAIDSECRET}
     PLAIDENV: ${env:PLAIDENV, 'sandbox'}
     USER_TABLE: ${self:service}-users-${sls:stage}
-    USER_POOL_ID: !Ref UserPool
-    USER_POOL_CLIENT_ID: !Ref UserPoolClient
+    USER_POOL_ID: !Ref CognitoUserPool
+    USER_POOL_CLIENT_ID: !Ref CognitoUserPoolClient
   iam:
     role:
       statements:
@@ -28,8 +28,31 @@ provider:
             - dynamodb:DeleteItem
           Resource: 
             - !GetAtt UsersTable.Arn
+        - Effect: Allow
+          Action:
+            - cognito-idp:AdminInitiateAuth
+            - cognito-idp:AdminCreateUser
+            - cognito-idp:AdminSetUserPassword
+          Resource: 
+            - !GetAtt CognitoUserPool.Arn
 
 functions:
+  postConfirmation:
+    handler: src/handlers/postConfirmation.handler
+    events:
+      - cognitoUserPool:
+          pool: !Ref CognitoUserPool
+          trigger: PostConfirmation
+          existing: false
+    provider:
+      iam:
+        role:
+          statements:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt UsersTable.Arn
+
   createLinkToken:
     handler: src/handlers/plaid.createLinkToken
     events:
@@ -94,13 +117,22 @@ resources:
         AttributeDefinitions:
           - AttributeName: userId
             AttributeType: S
+          - AttributeName: email
+            AttributeType: S
         KeySchema:
           - AttributeName: userId
             KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: email-index
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
         SSESpecification:
           SSEEnabled: true
 
-    UserPool:
+    CognitoUserPool:
       Type: AWS::Cognito::UserPool
       Properties:
         UserPoolName: ${self:service}-user-pool-${sls:stage}
@@ -111,17 +143,30 @@ resources:
         Policies:
           PasswordPolicy:
             MinimumLength: 8
+            RequireLowercase: true
+            RequireNumbers: true
+            RequireSymbols: true
+            RequireUppercase: true
         AdminCreateUserConfig:
           AllowAdminCreateUserOnly: false
-        Schema:
-          - Name: email
-            Required: true
-            Mutable: true
-        
-    UserPoolClient:
+        LambdaConfig:
+          PostConfirmation: !GetAtt PostConfirmationLambdaFunction.Arn
+
+    PostConfirmationInvokePermission:
+      Type: AWS::Lambda::Permission
+      DependsOn: 
+        - CognitoUserPool
+        - PostConfirmationLambdaFunction
+      Properties:
+        Action: lambda:InvokeFunction
+        FunctionName: !Ref PostConfirmationLambdaFunction
+        Principal: cognito-idp.amazonaws.com
+        SourceArn: !GetAtt CognitoUserPool.Arn
+
+    CognitoUserPoolClient:
       Type: AWS::Cognito::UserPoolClient
       Properties:
-        UserPoolId: !Ref UserPool
+        UserPoolId: !Ref CognitoUserPool
         ClientName: ${self:service}-user-pool-client-${sls:stage}
         GenerateSecret: false
         ExplicitAuthFlows:
@@ -151,7 +196,13 @@ resources:
         IdentitySource: method.request.header.Authorization
         RestApiId: !Ref ApiGatewayRestApi
         ProviderARNs:
-          - !GetAtt UserPool.Arn
+          - !GetAtt CognitoUserPool.Arn
+
+    CognitoUserPoolDomain:
+      Type: AWS::Cognito::UserPoolDomain
+      Properties:
+        Domain: mynt-budget-tracker-${sls:stage}-auth
+        UserPoolId: !Ref CognitoUserPool
 
     # UserPoolIdentityProvider:
     #   Type: AWS::Cognito::UserPoolIdentityProvider
@@ -170,5 +221,16 @@ resources:
 
 custom:
   dotenv:
-    path: ./.env  # Relative to serverless.yml location
-    logging: true # This will show debug logs about env loading
+    path: ./.env
+    logging: true
+
+outputs:
+  UserPoolId:
+    Value: !Ref CognitoUserPool
+    Description: Cognito User Pool ID
+  UserPoolClientId:
+    Value: !Ref CognitoUserPoolClient
+    Description: Cognito User Pool Client ID
+  Region:
+    Value: ${self:provider.region}
+    Description: AWS Region
