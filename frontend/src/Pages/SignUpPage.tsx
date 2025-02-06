@@ -13,7 +13,7 @@ const SignUpPage: React.FC = () => {
     setError('');
 
     const formData = new FormData(e.currentTarget);
-    const username = formData.get('username') as string;
+    const username = formData.get('email') as string;
     const password = formData.get('password') as string;
     const email = formData.get('email') as string;
 
@@ -70,13 +70,6 @@ const SignUpPage: React.FC = () => {
 
         {!showVerification ? (
           <form onSubmit={handleSubmit}>
-            <input
-              name="username"
-              type="text"
-              placeholder="Username"
-              required
-              className="w-full p-2 mb-4 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
             <input
               name="email"
               type="email"

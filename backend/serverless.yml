@@ -12,7 +12,7 @@ provider:
     PLAIDCLIENTID: ${env:PLAIDCLIENTID}
     PLAIDSECRET: ${env:PLAIDSECRET}
     PLAIDENV: ${env:PLAIDENV, 'sandbox'}
-    USER_TABLE: ${self:service}-users-${sls:stage}
+    USER_TABLE: ${self:service}-users-${opt:stage, 'dev'}
     USER_POOL_ID: !Ref CognitoUserPool
     USER_POOL_CLIENT_ID: !Ref CognitoUserPoolClient
   iam:
@@ -28,30 +28,23 @@ provider:
             - dynamodb:DeleteItem
           Resource: 
             - !GetAtt UsersTable.Arn
+            - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.USER_TABLE}'
+            - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.USER_TABLE}/index/*'
         - Effect: Allow
           Action:
             - cognito-idp:AdminInitiateAuth
             - cognito-idp:AdminCreateUser
             - cognito-idp:AdminSetUserPassword
-          Resource: 
-            - !GetAtt CognitoUserPool.Arn
+          Resource: "*"  # Changed to allow access to Cognito operations
 
 functions:
   postConfirmation:
     handler: src/handlers/postConfirmation.handler
     events:
       - cognitoUserPool:
-          pool: !Ref CognitoUserPool
+          pool: ${self:service}-user-pool-${opt:stage, 'dev'}
           trigger: PostConfirmation
-          existing: false
-    provider:
-      iam:
-        role:
-          statements:
-            - Effect: Allow
-              Action:
-                - dynamodb:PutItem
-              Resource: !GetAtt UsersTable.Arn
+          existing: true
 
   createLinkToken:
     handler: src/handlers/plaid.createLinkToken
@@ -59,9 +52,11 @@ functions:
       - http:
           path: /plaid/create-link-token
           method: post
+          cors: true
           authorizer:
+            name: CognitoAuthorizer
             type: COGNITO_USER_POOLS
-            authorizerId: !Ref ApiGatewayAuthorizer
+            arn: !GetAtt CognitoUserPool.Arn
 
   exchangePublicToken:
     handler: src/handlers/plaid.exchangePublicToken
@@ -69,9 +64,11 @@ functions:
       - http:
           path: /plaid/exchange-token
           method: post
+          cors: true
           authorizer:
+            name: CognitoAuthorizer
             type: COGNITO_USER_POOLS
-            authorizerId: !Ref ApiGatewayAuthorizer
+            arn: !GetAtt CognitoUserPool.Arn
 
   getTransactions:
     handler: src/handlers/plaid.getTransactions
@@ -79,9 +76,11 @@ functions:
       - http:
           path: /transactions
           method: get
+          cors: true
           authorizer:
+            name: CognitoAuthorizer
             type: COGNITO_USER_POOLS
-            authorizerId: !Ref ApiGatewayAuthorizer
+            arn: !GetAtt CognitoUserPool.Arn
 
   signUp:
     handler: src/handlers/auth.signUp
@@ -135,7 +134,7 @@ resources:
     CognitoUserPool:
       Type: AWS::Cognito::UserPool
       Properties:
-        UserPoolName: ${self:service}-user-pool-${sls:stage}
+        UserPoolName: ${self:service}-user-pool-${opt:stage, 'dev'}
         AutoVerifiedAttributes:
           - email
         UsernameAttributes:
@@ -149,25 +148,12 @@ resources:
             RequireUppercase: true
         AdminCreateUserConfig:
           AllowAdminCreateUserOnly: false
-        LambdaConfig:
-          PostConfirmation: !GetAtt PostConfirmationLambdaFunction.Arn
-
-    PostConfirmationInvokePermission:
-      Type: AWS::Lambda::Permission
-      DependsOn: 
-        - CognitoUserPool
-        - PostConfirmationLambdaFunction
-      Properties:
-        Action: lambda:InvokeFunction
-        FunctionName: !Ref PostConfirmationLambdaFunction
-        Principal: cognito-idp.amazonaws.com
-        SourceArn: !GetAtt CognitoUserPool.Arn
 
     CognitoUserPoolClient:
       Type: AWS::Cognito::UserPoolClient
       Properties:
         UserPoolId: !Ref CognitoUserPool
-        ClientName: ${self:service}-user-pool-client-${sls:stage}
+        ClientName: ${self:service}-user-pool-client-${opt:stage, 'dev'}
         GenerateSecret: false
         ExplicitAuthFlows:
           - ALLOW_USER_SRP_AUTH
@@ -176,10 +162,8 @@ resources:
           - COGNITO
         CallbackURLs:
           - http://localhost:3000/callback
-          - https://your-production-domain.com/callback
         LogoutURLs:
           - http://localhost:3000
-          - https://your-production-domain.com
         AllowedOAuthFlows:
           - code
         AllowedOAuthScopes:
@@ -187,37 +171,12 @@ resources:
           - openid
           - profile
         AllowedOAuthFlowsUserPoolClient: true
-        
-    ApiGatewayAuthorizer:
-      Type: AWS::ApiGateway::Authorizer
-      Properties:
-        Name: cognito-authorizer
-        Type: COGNITO_USER_POOLS
-        IdentitySource: method.request.header.Authorization
-        RestApiId: !Ref ApiGatewayRestApi
-        ProviderARNs:
-          - !GetAtt CognitoUserPool.Arn
 
     CognitoUserPoolDomain:
       Type: AWS::Cognito::UserPoolDomain
       Properties:
-        Domain: mynt-budget-tracker-${sls:stage}-auth
+        Domain: mynt-budget-tracker-${opt:stage, 'dev'}-auth
         UserPoolId: !Ref CognitoUserPool
-
-    # UserPoolIdentityProvider:
-    #   Type: AWS::Cognito::UserPoolIdentityProvider
-    #   Properties:
-    #     UserPoolId: !Ref UserPool
-    #     ProviderName: Google
-    #     ProviderType: Google
-    #     ProviderDetails:
-    #       client_id: ${env:GOOGLE_CLIENT_ID}
-    #       client_secret: ${env:GOOGLE_CLIENT_SECRET}
-    #       authorize_scopes: email profile openid
-    #     AttributeMapping:
-    #       email: email
-    #       given_name: given_name
-    #       family_name: family_name 
 
 custom:
   dotenv:

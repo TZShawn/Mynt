@@ -19,9 +19,12 @@ const LoginPage: React.FC = () => {
     const password = formData.get('password') as string;
 
     try {
-      const signInOutput = await signIn({ username, password });
-      console.log(signInOutput);
-      if (signInOutput.isSignedIn === true) {
+      const signInOutput = await signIn({
+        username,
+        password
+      });
+      
+      if (signInOutput.isSignedIn) {
         dispatch(setLoggedInUser({
           id: username,
           email: username,

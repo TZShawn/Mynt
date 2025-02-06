@@ -29,13 +29,9 @@ export const handler = async (event: PostConfirmationTriggerEvent) => {
     const { userAttributes } = event.request;
     const userId = event.request.userAttributes.sub;
     const email = userAttributes.email;
+    const password = userAttributes.password;
 
     console.log('User data to be saved:', { userId, email });
-
-    const defaultSettings: UserSettings = {
-      theme: 'light',
-      currency: 'CAD'
-    };
 
     const command = new PutCommand({
       TableName: USER_TABLE,
@@ -44,8 +40,9 @@ export const handler = async (event: PostConfirmationTriggerEvent) => {
         email,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        settings: defaultSettings,
-        accessTokens: [] as PlaidAccessToken[],
+        currency: "CAD",
+        accessTokens: "",
+        password,
       }
     });
 
