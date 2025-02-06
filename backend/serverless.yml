@@ -13,6 +13,7 @@ provider:
     PLAIDSECRET: ${env:PLAIDSECRET}
     PLAIDENV: ${env:PLAIDENV, 'sandbox'}
     USER_TABLE: ${self:service}-users-${opt:stage, 'dev'}
+    GOALS_TABLE: ${self:service}-goals-${opt:stage, 'dev'}
     USER_POOL_ID: !Ref CognitoUserPool
     USER_POOL_CLIENT_ID: !Ref CognitoUserPoolClient
   iam:
@@ -36,6 +37,19 @@ provider:
             - cognito-idp:AdminCreateUser
             - cognito-idp:AdminSetUserPassword
           Resource: "*"  # Changed to allow access to Cognito operations
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource: 
+            - !GetAtt GoalsTable.Arn
+            - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.GOALS_TABLE}'
+            - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.GOALS_TABLE}/index/*'
+
 
 functions:
   postConfirmation:
@@ -130,6 +144,20 @@ resources:
               ProjectionType: ALL
         SSESpecification:
           SSEEnabled: true
+    GoalsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-goals-${opt:stage, 'dev'}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: goalId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: goalId
+            KeyType: HASH
+        SSESpecification:
+          SSEEnabled: true
+
 
     CognitoUserPool:
       Type: AWS::Cognito::UserPool
