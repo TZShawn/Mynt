@@ -4,33 +4,49 @@ import { saveUserToken, getUserToken } from '../utils/dynamodb';
 import { APIResponse, TransactionRequest } from '../types/plaid';
 import { CountryCode, Products } from 'plaid';
 
-const corsHeaders = {
+const getOrigin = (event: APIGatewayProxyEvent): string => {
+  const origin = event.headers.origin || event.headers.Origin;
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || []) as string[];
+  return allowedOrigins.includes(origin as string) ? origin as string : allowedOrigins[0];
+};
+
+const getCorsHeaders = (event: APIGatewayProxyEvent) => ({
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Credentials': true,
-};
+});
 
 export const createLinkToken = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
     const userId = event.requestContext.authorizer?.claims.sub;
+    if (!userId) {
+      return {
+        statusCode: 401,
+        headers: getCorsHeaders(event),
+        body: JSON.stringify({ error: 'Unauthorized' }),
+      };
+    }
 
     const response = await plaidClient.linkTokenCreate({
       user: { client_user_id: userId },
       client_name: 'Mynt Budget Tracker',
-      products: process.env.PLAID_PRODUCTS?.split(',') as Products[],
-      country_codes: process.env.PLAID_COUNTRY_CODES?.split(',') as CountryCode[],
+      products: (process.env.PLAID_PRODUCTS?.split(',').map(p => p.trim()) || ['transactions']) as Products[],
+      country_codes: (process.env.PLAID_COUNTRY_CODES?.split(',').map(c => c.trim()) || ['US']) as CountryCode[],
       language: 'en',
     });
     
     return {
       statusCode: 200,
-      headers: corsHeaders,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Credentials': true,
+      },
       body: JSON.stringify({ link_token: response.data.link_token }),
     };
   } catch (error) {
     console.error('Error creating link token:', error);
     return {
       statusCode: 500,
-      headers: corsHeaders,
+      headers: getCorsHeaders(event),
       body: JSON.stringify({ error: 'Failed to create link token' }),
     };
   }
@@ -57,14 +73,14 @@ export const exchangePublicToken = async (event: APIGatewayProxyEvent): Promise<
 
     return {
       statusCode: 200,
-      headers: corsHeaders,
+      headers: getCorsHeaders(event),
       body: JSON.stringify({ success: true }),
     };
   } catch (error) {
     console.error('Error exchanging public token:', error);
     return {
       statusCode: 500,
-      headers: corsHeaders,
+      headers: getCorsHeaders(event),
       body: JSON.stringify({ error: 'Failed to exchange public token' }),
     };
   }
@@ -79,7 +95,7 @@ export const getTransactions = async (event: APIGatewayProxyEvent): Promise<APIG
     if (!user) {
       return {
         statusCode: 404,
-        headers: corsHeaders,
+        headers: getCorsHeaders(event),
         body: JSON.stringify({ error: 'User not found' }),
       };
     }
@@ -99,14 +115,14 @@ export const getTransactions = async (event: APIGatewayProxyEvent): Promise<APIG
 
     return {
       statusCode: 200,
-      headers: corsHeaders,
+      headers: getCorsHeaders(event),
       body: JSON.stringify(response.data),
     };
   } catch (error) {
     console.error('Error fetching transactions:', error);
     return {
       statusCode: 500,
-      headers: corsHeaders,
+      headers: getCorsHeaders(event),
       body: JSON.stringify({ error: 'Failed to fetch transactions' }),
     };
   }

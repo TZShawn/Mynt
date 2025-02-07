@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
 
 interface PlaidLinkButtonProps {
@@ -6,16 +6,75 @@ interface PlaidLinkButtonProps {
 }
 
 const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ className = '' }) => {
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchLinkToken = async () => {
+      try {
+        console.log('Fetching link token', `${process.env.REACT_APP_BASE_URL}/plaid/create-link-token`);
+        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/plaid/create-link-token`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Credentials': 'true',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        console.log('Link token response:', data);
+        if (data.error) {
+          setError(data.error);
+          return;
+        }
+        setLinkToken(data.link_token);
+      } catch (error) {
+        console.error('Error fetching link token:', error);
+        setError('Failed to initialize Plaid');
+      }
+    };
+
+    fetchLinkToken();
+  }, []);
+
+  const onSuccess = async (public_token: string, metadata: any) => {
+    try {
+      console.log('Plaid Link success:', metadata);
+      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/plaid/exchange-token`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Credentials': 'true',
+        },
+        body: JSON.stringify({ public_token }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to exchange token');
+      }
+
+      const data = await response.json();
+      console.log('Exchange token success:', data);
+    } catch (error) {
+      console.error('Error exchanging public token:', error);
+      setError('Failed to connect bank account');
+    }
+  };
+
   const { open, ready } = usePlaidLink({
-    token: 'your-link-token', // This should come from your backend
-    onSuccess: (public_token: any, metadata: any) => {
-      // Handle success
-      console.log('Success:', public_token, metadata);
-      // Send public_token to your backend
-    },
-    onExit: (err: any, metadata: any) => {
-      // Handle exit
-      console.log('Exit:', err, metadata);
+    token: linkToken || '',
+    onSuccess,
+    onExit: (err, metadata) => {
+      if (err) {
+        console.error('Plaid Link exit with error:', err, metadata);
+        setError('Error connecting to bank');
+      }
     },
   });
 

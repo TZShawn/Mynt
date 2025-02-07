@@ -16,6 +16,7 @@ provider:
     GOALS_TABLE: ${self:service}-goals-${opt:stage, 'dev'}
     USER_POOL_ID: !Ref CognitoUserPool
     USER_POOL_CLIENT_ID: !Ref CognitoUserPoolClient
+    ALLOWED_ORIGINS: '*'
   iam:
     role:
       statements:
@@ -28,28 +29,10 @@ provider:
             - dynamodb:UpdateItem
             - dynamodb:DeleteItem
           Resource: 
-            - !GetAtt UsersTable.Arn
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.USER_TABLE}'
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.USER_TABLE}/index/*'
-        - Effect: Allow
-          Action:
-            - cognito-idp:AdminInitiateAuth
-            - cognito-idp:AdminCreateUser
-            - cognito-idp:AdminSetUserPassword
-          Resource: "*"  # Changed to allow access to Cognito operations
-        - Effect: Allow
-          Action:
-            - dynamodb:Query
-            - dynamodb:Scan
-            - dynamodb:GetItem
-            - dynamodb:PutItem
-            - dynamodb:UpdateItem
-            - dynamodb:DeleteItem
-          Resource: 
-            - !GetAtt GoalsTable.Arn
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.GOALS_TABLE}'
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.GOALS_TABLE}/index/*'
-
 
 functions:
   postConfirmation:
@@ -111,7 +94,6 @@ functions:
           path: /auth/confirm
           method: post
           cors: true
-
   signIn:
     handler: src/handlers/auth.signIn
     events:
@@ -209,7 +191,6 @@ resources:
 custom:
   dotenv:
     path: ./.env
-    logging: true
 
 outputs:
   UserPoolId:
