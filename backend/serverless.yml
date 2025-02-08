@@ -8,6 +8,12 @@ provider:
   runtime: nodejs18.x
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
+  logs:
+    restApi:
+      accessLogging: true
+      executionLogging: true
+      level: INFO
+      fullExecutionData: true
   environment:
     PLAIDCLIENTID: ${env:PLAIDCLIENTID}
     PLAIDSECRET: ${env:PLAIDSECRET}
@@ -33,6 +39,15 @@ provider:
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.USER_TABLE}/index/*'
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.GOALS_TABLE}'
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.GOALS_TABLE}/index/*'
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:DescribeLogGroups
+            - logs:DescribeLogStreams
+          Resource: 
+            - 'arn:aws:logs:${self:provider.region}:${aws:accountId}:*'
 
 functions:
   postConfirmation:
@@ -49,7 +64,12 @@ functions:
       - http:
           path: /plaid/create-link-token
           method: post
-          cors: true
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
           authorizer:
             name: CognitoAuthorizer
             type: COGNITO_USER_POOLS
@@ -61,7 +81,12 @@ functions:
       - http:
           path: /plaid/exchange-token
           method: post
-          cors: true
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
           authorizer:
             name: CognitoAuthorizer
             type: COGNITO_USER_POOLS
@@ -73,7 +98,12 @@ functions:
       - http:
           path: /transactions
           method: get
-          cors: true
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
           authorizer:
             name: CognitoAuthorizer
             type: COGNITO_USER_POOLS
@@ -140,7 +170,6 @@ resources:
         SSESpecification:
           SSEEnabled: true
 
-
     CognitoUserPool:
       Type: AWS::Cognito::UserPool
       Properties:
@@ -187,6 +216,24 @@ resources:
       Properties:
         Domain: mynt-budget-tracker-${opt:stage, 'dev'}-auth
         UserPoolId: !Ref CognitoUserPool
+
+    ApiGatewayAccount:
+      Type: AWS::ApiGateway::Account
+      Properties:
+        CloudWatchRoleArn: !GetAtt ApiGatewayCloudWatchLogsRole.Arn
+
+    ApiGatewayCloudWatchLogsRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: apigateway.amazonaws.com
+              Action: sts:AssumeRole
+        ManagedPolicyArns:
+          - 'arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs'
 
 custom:
   dotenv:

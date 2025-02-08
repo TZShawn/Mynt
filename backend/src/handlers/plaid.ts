@@ -17,6 +17,18 @@ const getCorsHeaders = (event: APIGatewayProxyEvent) => ({
 
 export const createLinkToken = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    if (!authHeader) {
+      return {
+        statusCode: 401,
+        headers: getCorsHeaders(event),
+        body: JSON.stringify({ error: 'No authorization header' }),
+      };
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    // You can verify the JWT token here if needed
+
     const userId = event.requestContext.authorizer?.claims.sub;
     if (!userId) {
       return {
@@ -36,10 +48,7 @@ export const createLinkToken = async (event: APIGatewayProxyEvent): Promise<APIG
     
     return {
       statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Credentials': true,
-      },
+      headers: getCorsHeaders(event),
       body: JSON.stringify({ link_token: response.data.link_token }),
     };
   } catch (error) {

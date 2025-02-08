@@ -17,5 +17,13 @@ Amplify.configure({
         email: true
       }
     }
-  }
+  },
+  API: {
+    REST: {
+      api: {
+        endpoint: process.env.REACT_APP_BASE_URL as string,
+        region: 'us-east-1',
+      },
+    },
+  },
 }); 

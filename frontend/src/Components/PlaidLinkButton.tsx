@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
+import { fetchAuthSession, getCurrentUser } from '@aws-amplify/auth';
 
 interface PlaidLinkButtonProps {
   className?: string;
@@ -10,47 +11,67 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ className = '' }) => 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchLinkToken = async () => {
+    const getUser = async () => {
       try {
-        console.log('Fetching link token', `${process.env.REACT_APP_BASE_URL}/plaid/create-link-token`);
-        const response = await fetch(`${process.env.REACT_APP_BASE_URL}/plaid/create-link-token`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Credentials': 'true',
-          },
-        });
+        const user = await getCurrentUser();
+        const session = await fetchAuthSession();
+        const token = session.tokens?.idToken?.toString();
 
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
+        if (token) {
+          fetchLinkToken(token);
         }
-
-        const data = await response.json();
-        console.log('Link token response:', data);
-        if (data.error) {
-          setError(data.error);
-          return;
-        }
-        setLinkToken(data.link_token);
       } catch (error) {
-        console.error('Error fetching link token:', error);
-        setError('Failed to initialize Plaid');
+        console.error('Error getting user:', error);
+        setError('Authentication required');
       }
     };
 
-    fetchLinkToken();
+    getUser();
   }, []);
+
+  const fetchLinkToken = async (token: string) => {
+    try {
+      console.log('Fetching link token', `${process.env.REACT_APP_BASE_URL}/plaid/create-link-token`);
+      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/plaid/create-link-token`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const data = await response.json();
+      console.log('Link token response:', data);
+      if (data.error) {
+        setError(data.error);
+        return;
+      }
+      setLinkToken(data.link_token);
+    } catch (error) {
+      console.error('Error fetching link token:', error);
+      setError('Failed to initialize Plaid');
+    }
+  };
 
   const onSuccess = async (public_token: string, metadata: any) => {
     try {
+      const session = await fetchAuthSession();
+      const token = session.tokens?.idToken?.toString();
+      
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
       console.log('Plaid Link success:', metadata);
       const response = await fetch(`${process.env.REACT_APP_BASE_URL}/plaid/exchange-token`, {
         method: 'POST',
-        credentials: 'include',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Credentials': 'true',
         },
         body: JSON.stringify({ public_token }),
       });
