@@ -9,7 +9,7 @@ const TABLE_NAME = process.env.USER_TABLE!;
 
 interface SaveUserTokenParams {
   userId: string;
-  accessTokens: string;
+  accessTokens: any[];
   updatedAt: string;
 }
 
@@ -19,11 +19,13 @@ export const saveUserToken = async (user: SaveUserTokenParams): Promise<void> =>
   const command = new UpdateCommand({
     TableName: TABLE_NAME,
     Key: { userId: user.userId },
-    UpdateExpression: 'SET accessTokens = :accessTokens, updatedAt = :updatedAt',
+    UpdateExpression: 'SET accessTokens = list_append(if_not_exists(accessTokens, :empty_list), :accessTokens), updatedAt = :updatedAt',
     ExpressionAttributeValues: {
       ':accessTokens': user.accessTokens,
       ':updatedAt': user.updatedAt,
+      ':empty_list': [],
     },
+
   });
 
   await docClient.send(command);
@@ -31,7 +33,7 @@ export const saveUserToken = async (user: SaveUserTokenParams): Promise<void> =>
 
 interface UserEntry {
   userId: string;
-  accessTokens: string;
+  accessTokens: any[];
   updatedAt: string;
   [key: string]: any; // Allow for additional fields that might be in the DB
 }

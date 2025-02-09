@@ -31,7 +31,6 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ className = '' }) => 
 
   const fetchLinkToken = async (token: string) => {
     try {
-      console.log('Fetching link token', `${process.env.REACT_APP_BASE_URL}/plaid/create-link-token`);
       const response = await fetch(`${process.env.REACT_APP_BASE_URL}/plaid/create-link-token`, {
         method: 'POST',
         headers: {
@@ -45,7 +44,7 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ className = '' }) => 
       }
 
       const data = await response.json();
-      console.log('Link token response:', data);
+
       if (data.error) {
         setError(data.error);
         return;
@@ -62,6 +61,24 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ className = '' }) => 
       const session = await fetchAuthSession();
       const token = session.tokens?.idToken?.toString();
       
+
+      const account_metadata = []
+
+      for (const account of metadata.accounts) {
+        account_metadata.push({
+          account_name: account.name,
+          account_id: account.id,
+          account_subtype: account.subtype,
+        })
+      }
+
+      const formattedMetadata = {
+        institution_name: metadata.institution.name,
+        accounts: account_metadata,
+
+      }
+
+
       if (!token) {
         throw new Error('No authentication token available');
       }
@@ -73,7 +90,7 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ className = '' }) => 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ public_token }),
+        body: JSON.stringify({ public_token, metadata: formattedMetadata }),
       });
 
       if (!response.ok) {

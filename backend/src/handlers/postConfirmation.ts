@@ -41,7 +41,8 @@ export const handler = async (event: PostConfirmationTriggerEvent) => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         currency: "CAD",
-        accessTokens: "",
+        accessTokens: [],
+        accounts: [],
         password,
       }
     });

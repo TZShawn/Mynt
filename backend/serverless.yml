@@ -19,6 +19,7 @@ provider:
     PLAIDSECRET: ${env:PLAIDSECRET}
     PLAIDENV: ${env:PLAIDENV, 'sandbox'}
     USER_TABLE: ${self:service}-users-${opt:stage, 'dev'}
+    TRANSACTIONS_TABLE: ${self:service}-transactions-${opt:stage, 'dev'}
     GOALS_TABLE: ${self:service}-goals-${opt:stage, 'dev'}
     USER_POOL_ID: !Ref CognitoUserPool
     USER_POOL_CLIENT_ID: !Ref CognitoUserPoolClient
@@ -164,6 +165,19 @@ resources:
                 KeyType: HASH
             Projection:
               ProjectionType: ALL
+        SSESpecification:
+          SSEEnabled: true
+    TransactionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TRANSACTIONS_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: transactionId
+            AttributeType: S
+        KeySchema:  
+          - AttributeName: transactionId
+            KeyType: HASH
         SSESpecification:
           SSEEnabled: true
     GoalsTable:

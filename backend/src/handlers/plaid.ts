@@ -106,12 +106,11 @@ export const exchangePublicToken = async (event: APIGatewayProxyEvent): Promise<
       };
     }
 
-    logger.info('Verified userId:', String(userId));
-
-    const { public_token } = JSON.parse(event.body || '{}');
-    if (!public_token) {
+    const { public_token, metadata } = JSON.parse(event.body || '{}');
+    if (!public_token || !metadata) {
       return {
         statusCode: 400,
+
         headers: getCorsHeaders(event),
         body: JSON.stringify({ error: 'Missing public_token in request body' }),
       };
@@ -124,11 +123,19 @@ export const exchangePublicToken = async (event: APIGatewayProxyEvent): Promise<
     const { access_token, item_id } = response.data;
     const date = new Date().toISOString();
     
-    await saveUserToken({
+    logger.info('Verified userId:' +  JSON.stringify(metadata));
+
+    const formattedUser = {
       userId,
-      accessTokens: access_token,
+      accessTokens: [{
+        access_token, 
+        bank_name: metadata.institution_name,
+        accounts: metadata.accounts,
+      }],
       updatedAt: date,
-    });
+    }
+
+    await saveUserToken(formattedUser);
 
     return {
       statusCode: 200,
@@ -137,7 +144,7 @@ export const exchangePublicToken = async (event: APIGatewayProxyEvent): Promise<
     };
     
   } catch (error) {
-    logger.error('Error exchanging public token:', error instanceof Error ? error : String(error));
+    logger.error('Error exchanging public token:' + (error instanceof Error ? error : String(error)));
     return {
       statusCode: 500,
       headers: getCorsHeaders(event),
@@ -184,10 +191,8 @@ export const getTransactions = async (event: APIGatewayProxyEvent): Promise<APIG
     // const end = endDate ? new Date(endDate) : now;
     // const start = startDate ? new Date(startDate) : new Date(now.setDate(now.getDate() - 30));
 
-    logger.info('userId: ' + user.accessTokens)
-
     const response = await plaidClient.transactionsSync({
-      access_token: user.accessTokens,
+      access_token: user.accessTokens[0],
     });
 
     return {
