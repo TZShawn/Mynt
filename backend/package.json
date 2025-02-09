@@ -7,9 +7,11 @@
     "deploy": "serverless deploy"
   },
   "dependencies": {
+    "@aws-lambda-powertools/logger": "^2.13.1",
     "@aws-sdk/client-cognito-identity-provider": "^3.741.0",
     "@aws-sdk/client-dynamodb": "^3.741.0",
     "@aws-sdk/lib-dynamodb": "^3.741.0",
+    "aws-jwt-verify": "^5.0.0",
     "aws-sdk": "^2.1338.0",
     "dotenv": "^16.4.7",
     "plaid": "^12.0.0",

@@ -91,6 +91,11 @@ functions:
             name: CognitoAuthorizer
             type: COGNITO_USER_POOLS
             arn: !GetAtt CognitoUserPool.Arn
+            claims:
+              - email
+              - sub
+              - cognito:username
+            resultTtlInSeconds: 0
 
   getTransactions:
     handler: src/handlers/plaid.getTransactions
@@ -108,6 +113,11 @@ functions:
             name: CognitoAuthorizer
             type: COGNITO_USER_POOLS
             arn: !GetAtt CognitoUserPool.Arn
+            claims:
+              - email
+              - sub
+              - cognito:username
+            resultTtlInSeconds: 0
 
   signUp:
     handler: src/handlers/auth.signUp
