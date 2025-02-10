@@ -122,16 +122,42 @@ export const exchangePublicToken = async (event: APIGatewayProxyEvent): Promise<
 
     const { access_token, item_id } = response.data;
     const date = new Date().toISOString();
-    
-    logger.info('Verified userId:' +  JSON.stringify(metadata));
+
+    const user = await getUserToken(userId);
+
+    if (!user) {
+      return {
+        statusCode: 404,
+        headers: getCorsHeaders(event),
+        body: JSON.stringify({ error: 'User not found' }),
+      };
+    }
+
+    let user_access_tokens = user.accessTokens;
+
+
+    let account = false;
+    for (const token of user_access_tokens) {
+      if (token.bank_name === metadata.institution_name) {
+        token.access_token = access_token;
+        token.last_synced = date;
+        account = true;
+      }
+    }
+
+    if (!account) {
+      user_access_tokens.push({
+        access_token,
+        bank_name: metadata.institution_name,
+        accounts: metadata.accounts,
+        last_synced: date,
+        cursor: ""
+      });
+    }
 
     const formattedUser = {
       userId,
-      accessTokens: [{
-        access_token, 
-        bank_name: metadata.institution_name,
-        accounts: metadata.accounts,
-      }],
+      accessTokens: user_access_tokens,
       updatedAt: date,
     }
 
@@ -175,9 +201,6 @@ export const getTransactions = async (event: APIGatewayProxyEvent): Promise<APIG
       };
     }
 
-    // const { startDate, endDate, limit = 100 } = JSON.parse(event.body || '{}') as TransactionRequest;
-
-
     const user = await getUserToken(userId);
     if (!user) {
       return {
@@ -187,9 +210,38 @@ export const getTransactions = async (event: APIGatewayProxyEvent): Promise<APIG
       };
     }
 
-    // const now = new Date();
-    // const end = endDate ? new Date(endDate) : now;
-    // const start = startDate ? new Date(startDate) : new Date(now.setDate(now.getDate() - 30));
+    for (const token of user.accessTokens) {
+      const accessToken = token.access_token;
+      const cursor = token.cursor;
+      const accounts = token.accounts;
+
+      let hasNext = true;
+      let nextCursor = "";
+
+
+      let added = []
+      let modified = []
+      let removed = []
+      while(hasNext) {
+        const response = await plaidClient.transactionsSync({
+          access_token: accessToken,
+          cursor: cursor,
+        });
+
+        const transactions = response.data.transactions;
+
+
+        added.push(...transactions.added);
+        modified.push(...transactions.modified);
+        removed.push(...transactions.removed);
+
+        const nextCursor = response.data.next_cursor;
+        hasNext = nextCursor !== null || nextCursor !== "";
+      }
+
+      
+
+    }
 
     const response = await plaidClient.transactionsSync({
       access_token: user.accessTokens[0],

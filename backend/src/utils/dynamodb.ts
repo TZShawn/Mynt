@@ -19,11 +19,10 @@ export const saveUserToken = async (user: SaveUserTokenParams): Promise<void> =>
   const command = new UpdateCommand({
     TableName: TABLE_NAME,
     Key: { userId: user.userId },
-    UpdateExpression: 'SET accessTokens = list_append(if_not_exists(accessTokens, :empty_list), :accessTokens), updatedAt = :updatedAt',
+    UpdateExpression: 'SET accessTokens = :accessTokens, updatedAt = :updatedAt',
     ExpressionAttributeValues: {
       ':accessTokens': user.accessTokens,
       ':updatedAt': user.updatedAt,
-      ':empty_list': [],
     },
 
   });
