@@ -242,9 +242,6 @@ export const getTransactions = async (event: APIGatewayProxyEvent): Promise<APIG
         cursor = nextCursor;
         hasNext = transactions.has_more;
       }
-      logger.info('Adding transactions: ' + added.length);
-      logger.info('Modified transactions: ' + modified.length);
-      logger.info('Removed transactions: ' + removed.length);
 
       for (const transaction of added) {
         await addTransaction(userId, transaction);

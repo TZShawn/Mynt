@@ -15,10 +15,10 @@ const Navbar: React.FC = () => {
   return (
     <nav className="bg-white shadow-md p-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-xl font-bold">Finance Tracker</h1>
+        <h1 className="text-xl font-bold text-mynt-gray-500">Finance Tracker</h1>
         <button
           onClick={handleLogout}
-          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+          className="bg-mynt-green hover:bg-mynt-gray-400 text-white px-4 py-2 rounded transition-colors"
         >
           Logout
         </button>

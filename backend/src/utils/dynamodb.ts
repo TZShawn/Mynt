@@ -70,7 +70,7 @@ export const addTransaction = async (userId: string, transaction: any) => {
   const transactionDate = transaction.date;
   const transactionAmount = transaction.amount;
   const transactionCategory = transaction.category;
-  const transactionMerchant = transaction.merchant;
+  const transactionMerchant = transaction.name;
 
   const formattedTransaction = {
     transactionId: String(transactionId),

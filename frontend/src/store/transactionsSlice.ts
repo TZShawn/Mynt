@@ -6,6 +6,7 @@ interface Transaction {
     transAmount: number;
     transactionId: string;
     userId: string;
+    transMerchant: string;
 }
 
 interface TransactionsState {
