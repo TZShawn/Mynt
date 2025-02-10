@@ -8,8 +8,9 @@ const Sidebar: React.FC = () => {
       <ul className="space-y-2">
         <li><Link to="/dashboard" className="hover:bg-gray-700 p-2 block rounded">Dashboard</Link></li>
         <li><Link to="/accounts" className="hover:bg-gray-700 p-2 block rounded">Accounts</Link></li>
-        <li><Link to="/budget" className="hover:bg-gray-700 p-2 block rounded">Budget</Link></li>
         <li><Link to="/transactions" className="hover:bg-gray-700 p-2 block rounded">Transactions</Link></li>
+        <li><Link to="/trends" className="hover:bg-gray-700 p-2 block rounded">Trends</Link></li>
+        <li><Link to="/budget" className="hover:bg-gray-700 p-2 block rounded">Budget</Link></li>
       </ul>
     </aside>
   );

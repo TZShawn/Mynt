@@ -13,6 +13,7 @@ import AccountsPage from './Pages/Accounts';
 import SignUpPage from './Pages/SignUpPage';
 import { RootState } from './store/store';
 import { setLoggedInUser } from './store/authSlice';
+import TrendsPage from './Pages/TrendsPage';
 
 const App: React.FC = () => {
   const dispatch = useDispatch();
@@ -53,6 +54,7 @@ const App: React.FC = () => {
               <Route path="/dashboard" element={isLoggedIn ? <DashboardPage /> : <Navigate to="/login" />} />
               <Route path="/budget" element={isLoggedIn ? <BudgetPage /> : <Navigate to="/login" />} />
               <Route path="/transactions" element={isLoggedIn ? <TransactionsPage /> : <Navigate to="/login" />} />
+              <Route path="/trends" element={isLoggedIn ? <TrendsPage /> : <Navigate to="/login" />} />
               <Route path="/accounts" element={isLoggedIn ? <AccountsPage /> : <Navigate to="/login" />} />
               <Route path="/signup" element={isLoggedIn ? <Navigate to="/dashboard" /> : <SignUpPage />} />
               <Route path="*" element={<Navigate to="/" />} />

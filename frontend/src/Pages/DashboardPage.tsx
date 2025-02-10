@@ -73,7 +73,6 @@ const DashboardPage: React.FC = () => {
             >
               <FaSync className={isLoading ? 'animate-spin' : ''} />
             </button>
-            <PlaidLinkButton />
           </div>
         </div>
 
@@ -93,7 +92,7 @@ const DashboardPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {transactions.slice(0, 10).map((transaction) => (
+                    {transactions.map((transaction) => (
                       <tr key={transaction.transactionId}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(transaction.transDate).toLocaleDateString()}
