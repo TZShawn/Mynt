@@ -40,6 +40,8 @@ provider:
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.USER_TABLE}/index/*'
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.GOALS_TABLE}'
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.GOALS_TABLE}/index/*'
+            - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.TRANSACTIONS_TABLE}'
+            - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.TRANSACTIONS_TABLE}/index/*'
         - Effect: Allow
           Action:
             - logs:CreateLogGroup
@@ -119,6 +121,7 @@ functions:
               - sub
               - cognito:username
             resultTtlInSeconds: 0
+    timeout: 60
 
   signUp:
     handler: src/handlers/auth.signUp
@@ -175,9 +178,18 @@ resources:
         AttributeDefinitions:
           - AttributeName: transactionId
             AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
         KeySchema:  
           - AttributeName: transactionId
             KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: userId-index
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
         SSESpecification:
           SSEEnabled: true
     GoalsTable:

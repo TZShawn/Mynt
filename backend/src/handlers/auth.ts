@@ -129,8 +129,9 @@ export const handleLogin = async (req: Request) => {
     const authResult = await authenticateUser(username, password);
     return new Response(JSON.stringify({ 
       success: true, 
-      token: authResult.AccessToken,
-      refreshToken: authResult.RefreshToken
+      token: authResult?.AccessToken,
+      refreshToken: authResult?.RefreshToken
+
     }), {
       headers: { 'Content-Type': 'application/json' }
     });

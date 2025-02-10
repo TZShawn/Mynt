@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { plaidClient } from '../utils/plaid';
-import { saveUserToken, getUserToken } from '../utils/dynamodb';
+import { saveUserToken, getUserToken, addTransaction, updateTransaction, deleteTransaction, updateUser, getDBTransactions } from '../utils/dynamodb';
 import { APIResponse, TransactionRequest } from '../types/plaid';
 import { CountryCode, Products } from 'plaid';
 import { Logger } from '@aws-lambda-powertools/logger/lib/cjs';
@@ -201,7 +201,7 @@ export const getTransactions = async (event: APIGatewayProxyEvent): Promise<APIG
       };
     }
 
-    const user = await getUserToken(userId);
+    let user = await getUserToken(userId);
     if (!user) {
       return {
         statusCode: 404,
@@ -210,51 +210,80 @@ export const getTransactions = async (event: APIGatewayProxyEvent): Promise<APIG
       };
     }
 
-    for (const token of user.accessTokens) {
+    let accessTokens = user.accessTokens;
+    for (let token of accessTokens) {
       const accessToken = token.access_token;
-      const cursor = token.cursor;
-      const accounts = token.accounts;
+      let cursor = null
+      if (token.cursor != "") {
+        cursor = token.cursor;
+      }
 
       let hasNext = true;
-      let nextCursor = "";
+      let nextCursor = cursor;
 
+      let added: any[]   = []
+      let modified: any[] = []
+      let removed: any[] = []
 
-      let added = []
-      let modified = []
-      let removed = []
       while(hasNext) {
         const response = await plaidClient.transactionsSync({
           access_token: accessToken,
-          cursor: cursor,
+          cursor: nextCursor,
         });
 
-        const transactions = response.data.transactions;
-
+        const transactions = response.data;
+        logger.info('Transactions: ' + JSON.stringify(transactions));
 
         added.push(...transactions.added);
         modified.push(...transactions.modified);
         removed.push(...transactions.removed);
 
-        const nextCursor = response.data.next_cursor;
-        hasNext = nextCursor !== null || nextCursor !== "";
+        nextCursor = response.data.next_cursor;
+        cursor = nextCursor;
+        hasNext = transactions.has_more;
+      }
+      logger.info('Adding transactions: ' + added.length);
+      logger.info('Modified transactions: ' + modified.length);
+      logger.info('Removed transactions: ' + removed.length);
+
+      for (const transaction of added) {
+        await addTransaction(userId, transaction);
       }
 
-      
+      for (const transaction of modified) {
+        await updateTransaction(userId, transaction);
+      }
 
+      for (const transaction of removed) {
+        await deleteTransaction(transaction.transaction_id);
+      }
+
+      token.cursor = cursor;
+      token.last_synced = new Date().toISOString();
+      
+      logger.info('Token updated: ' + JSON.stringify(token));
     }
 
-    const response = await plaidClient.transactionsSync({
-      access_token: user.accessTokens[0],
-    });
+    user.accessTokens = accessTokens
+    user.updatedAt = new Date().toISOString();
+    logger.info('User accessTokens: ' + JSON.stringify(user.accessTokens));
+    logger.info('User updatedAt: ' + user.updatedAt);
+
+    await updateUser(userId, user)
+    logger.info('User updated');
+
+    logger.info('Getting transactions from DB');
+    const transactions = await getDBTransactions(userId);
 
     return {
       statusCode: 200,
       headers: getCorsHeaders(event),
-      body: JSON.stringify(response.data),
+      body: JSON.stringify({ success: true, response: transactions }),
     };
   } catch (error) {
     console.error('Error fetching transactions:', error);
     return {
+
       statusCode: 500,
       headers: getCorsHeaders(event),
       body: JSON.stringify({ error: 'Failed to fetch transactions' }),
