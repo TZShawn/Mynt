@@ -3,6 +3,13 @@ service: mynt-budget-tracker
 plugins:
   - serverless-dotenv-plugin
 
+custom:
+  dotenv:
+    path: ./.env.${opt:stage, 'dev'}
+  allowedOrigins:
+    dev: http://localhost:3000
+    demo: https://mynt-demo.netlify.app # Update with your actual demo domain
+
 provider:
   name: aws
   runtime: nodejs18.x
@@ -18,12 +25,12 @@ provider:
     PLAIDCLIENTID: ${env:PLAIDCLIENTID}
     PLAIDSECRET: ${env:PLAIDSECRET}
     PLAIDENV: ${env:PLAIDENV, 'sandbox'}
-    USER_TABLE: ${self:service}-users-${opt:stage, 'dev'}
-    TRANSACTIONS_TABLE: ${self:service}-transactions-${opt:stage, 'dev'}
-    GOALS_TABLE: ${self:service}-goals-${opt:stage, 'dev'}
+    USER_TABLE: ${self:service}-users-${self:provider.stage}
+    TRANSACTIONS_TABLE: ${self:service}-transactions-${self:provider.stage}
+    GOALS_TABLE: ${self:service}-goals-${self:provider.stage}
     USER_POOL_ID: !Ref CognitoUserPool
     USER_POOL_CLIENT_ID: !Ref CognitoUserPoolClient
-    ALLOWED_ORIGINS: '*'
+    ALLOWED_ORIGINS: ${self:custom.allowedOrigins.${self:provider.stage}}
   iam:
     role:
       statements:
@@ -244,7 +251,7 @@ resources:
       Type: AWS::Cognito::UserPoolClient
       Properties:
         UserPoolId: !Ref CognitoUserPool
-        ClientName: ${self:service}-user-pool-client-${opt:stage, 'dev'}
+        ClientName: ${self:service}-user-pool-client-${self:provider.stage}
         GenerateSecret: false
         ExplicitAuthFlows:
           - ALLOW_USER_SRP_AUTH
@@ -252,9 +259,9 @@ resources:
         SupportedIdentityProviders:
           - COGNITO
         CallbackURLs:
-          - http://localhost:3000/callback
+          - ${self:custom.allowedOrigins.${self:provider.stage}}/callback
         LogoutURLs:
-          - http://localhost:3000
+          - ${self:custom.allowedOrigins.${self:provider.stage}}
         AllowedOAuthFlows:
           - code
         AllowedOAuthScopes:
@@ -286,10 +293,6 @@ resources:
               Action: sts:AssumeRole
         ManagedPolicyArns:
           - 'arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs'
-
-custom:
-  dotenv:
-    path: ./.env
 
 outputs:
   UserPoolId:

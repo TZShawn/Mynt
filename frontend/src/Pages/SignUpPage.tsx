@@ -69,8 +69,7 @@ const SignUpPage: React.FC = () => {
         )}
 
         {!showVerification ? (
-          // <form onSubmit={handleSubmit}>
-          <form onSubmit={() => {navigate('/login')}}>
+          <form onSubmit={handleSubmit}>
             <input
               name="email"
               type="email"

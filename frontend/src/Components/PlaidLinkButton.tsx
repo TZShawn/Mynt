@@ -1,33 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
 import { fetchAuthSession, getCurrentUser } from '@aws-amplify/auth';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '../store/store';
+import { setLinkToken, setError } from '../store/plaidSlice';
 
 interface PlaidLinkButtonProps {
   className?: string;
 }
 
 const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ className = '' }) => {
-  const [linkToken, setLinkToken] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useDispatch();
+  const { linkToken, error } = useSelector((state: RootState) => state.plaid);
 
   useEffect(() => {
     const getUser = async () => {
-      try {
-        const user = await getCurrentUser();
-        const session = await fetchAuthSession();
-        const token = session.tokens?.idToken?.toString();
+      // Only fetch if we don't already have a link token
+      if (!linkToken) {
+        try {
+          const user = await getCurrentUser();
+          const session = await fetchAuthSession();
+          const token = session.tokens?.idToken?.toString();
 
-        if (token) {
-          fetchLinkToken(token);
+          if (token) {
+            fetchLinkToken(token);
+          }
+        } catch (error) {
+          console.error('Error getting user:', error);
+          dispatch(setError('Authentication required'));
         }
-      } catch (error) {
-        console.error('Error getting user:', error);
-        setError('Authentication required');
       }
     };
 
     getUser();
-  }, []);
+  }, [dispatch, linkToken]);
 
   const fetchLinkToken = async (token: string) => {
     try {
@@ -46,13 +52,13 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ className = '' }) => 
       const data = await response.json();
 
       if (data.error) {
-        setError(data.error);
+        dispatch(setError(data.error));
         return;
       }
-      setLinkToken(data.link_token);
+      dispatch(setLinkToken(data.link_token));
     } catch (error) {
       console.error('Error fetching link token:', error);
-      setError('Failed to initialize Plaid');
+      dispatch(setError('Failed to initialize Plaid'));
     }
   };
 
@@ -60,7 +66,6 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ className = '' }) => 
     try {
       const session = await fetchAuthSession();
       const token = session.tokens?.idToken?.toString();
-      
 
       const account_metadata = []
 
@@ -75,9 +80,7 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ className = '' }) => 
       const formattedMetadata = {
         institution_name: metadata.institution.name,
         accounts: account_metadata,
-
       }
-
 
       if (!token) {
         throw new Error('No authentication token available');
@@ -101,7 +104,7 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ className = '' }) => 
       console.log('Exchange token success:', data);
     } catch (error) {
       console.error('Error exchanging public token:', error);
-      setError('Failed to connect bank account');
+      dispatch(setError('Failed to connect bank account'));
     }
   };
 
@@ -111,7 +114,7 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ className = '' }) => 
     onExit: (err, metadata) => {
       if (err) {
         console.error('Plaid Link exit with error:', err, metadata);
-        setError('Error connecting to bank');
+        dispatch(setError('Error connecting to bank'));
       }
     },
   });

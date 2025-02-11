@@ -68,7 +68,7 @@ const App: React.FC = () => {
                 element={loggedInUser ? <Navigate to="/dashboard" /> : <LoginPage />} 
               />
               <Route 
-                path="/signup" 
+                path="/signuppp" 
                 element={loggedInUser ? <Navigate to="/dashboard" /> : <SignUpPage />} 
               />
               
