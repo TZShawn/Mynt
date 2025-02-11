@@ -141,6 +141,7 @@ export const exchangePublicToken = async (event: APIGatewayProxyEvent): Promise<
       if (token.bank_name === metadata.institution_name) {
         token.access_token = access_token;
         token.last_synced = date;
+        token.cursor = "";
         account = true;
       }
     }
@@ -212,6 +213,7 @@ export const getTransactions = async (event: APIGatewayProxyEvent): Promise<APIG
 
     let accessTokens = user.accessTokens;
     for (let token of accessTokens) {
+      logger.info('Token For: ' + token.bank_name);
       const accessToken = token.access_token;
       let cursor = null
       if (token.cursor != "") {
@@ -226,14 +228,14 @@ export const getTransactions = async (event: APIGatewayProxyEvent): Promise<APIG
       let removed: any[] = []
 
       while(hasNext) {
+        logger.info('Getting transactions from Plaid' + nextCursor);
         const response = await plaidClient.transactionsSync({
           access_token: accessToken,
           cursor: nextCursor,
         });
-
+        logger.info('FINSIHED FETCHING FROM PLAID');
         const transactions = response.data;
         logger.info('Transactions: ' + JSON.stringify(transactions));
-
         added.push(...transactions.added);
         modified.push(...transactions.modified);
         removed.push(...transactions.removed);

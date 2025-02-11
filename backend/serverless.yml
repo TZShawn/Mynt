@@ -77,6 +77,22 @@ functions:
             name: CognitoAuthorizer
             type: COGNITO_USER_POOLS
             arn: !GetAtt CognitoUserPool.Arn
+  getUserInfo:
+    handler: src/handlers/getUserInfo.handler
+    events:
+      - http:
+          path: /getUserInfo
+          method: get
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt CognitoUserPool.Arn
 
   exchangePublicToken:
     handler: src/handlers/plaid.exchangePublicToken

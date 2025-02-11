@@ -298,7 +298,13 @@ const DashboardPage: React.FC = () => {
                 <div className="overflow-x-auto">
                   <table className="min-w-full">
                     <tbody className="divide-y divide-mynt-gray-300">
-                      {(transactions as TransactionItem[])
+                      {transactions
+                        .slice()
+                        .sort(
+                          (a, b) =>
+                            new Date(b.transDate).getTime() -
+                            new Date(a.transDate).getTime()
+                        )
                         .slice(0, 5)
                         .map((transaction: TransactionItem) => (
                           <tr key={transaction.transactionId}>

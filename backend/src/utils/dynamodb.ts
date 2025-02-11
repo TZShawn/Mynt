@@ -83,14 +83,23 @@ export const addTransaction = async (userId: string, transaction: any) => {
 
   logger.info('Adding transaction: ' + JSON.stringify(formattedTransaction) + ' for transactionId: ' + transactionId);
 
-  const command = new PutCommand({
-    TableName: TRANSACTIONS_TABLE,
-    Item: formattedTransaction,
-    ConditionExpression: 'attribute_not_exists(transactionId)',
-  });
-
-
-  await docClient.send(command);
+  try {
+    const command = new PutCommand({
+      TableName: TRANSACTIONS_TABLE,
+      Item: formattedTransaction,
+      ConditionExpression: 'attribute_not_exists(transactionId)',
+    });
+    await docClient.send(command);
+  } catch (error: any) {
+    // If it's a duplicate transaction, log it but don't treat as error
+    if (error.name === 'ConditionalCheckFailedException') {
+      logger.info(`Skipping duplicate transaction ${transactionId} for user ${userId}`);
+      return;
+    }
+    // For any other errors, log and rethrow
+    logger.error('Error adding transaction:', { error, transactionId, userId });
+    throw error;
+  }
 }
 
 export const updateTransaction = async (userId: string, transaction: any) => {

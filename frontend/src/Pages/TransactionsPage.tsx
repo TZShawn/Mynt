@@ -25,7 +25,7 @@ const TransactionsPage: React.FC = () => {
               
               {/* Transaction Rows */}
               <div className="divide-y divide-gray-200">
-                {transactions.map((transaction) => (
+                {transactions.slice().sort((a, b) => new Date(b.transDate).getTime() - new Date(a.transDate).getTime()).map((transaction) => (
                   <div 
                     key={transaction.transactionId} 
                     className="grid grid-cols-3 gap-4 px-6 py-4 hover:bg-gray-50"

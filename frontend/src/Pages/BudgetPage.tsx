@@ -15,7 +15,7 @@ const BudgetPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <h1 className="text-2xl sm:text-3xl font-semibold">Budget Overview</h1>
       </div>
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {budgetData.map((item) => (
           <BudgetCategory
             key={item.category}
@@ -24,7 +24,8 @@ const BudgetPage: React.FC = () => {
             spent={item.spent}
           />
         ))}
-      </section>
+      </section> */}
+      <div className="text-center text-gray-500">WIP</div>
     </main>
   );
 };

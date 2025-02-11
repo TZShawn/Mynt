@@ -83,10 +83,16 @@ const LoginPage: React.FC = () => {
 
         <p className="mt-4 text-center text-sm text-gray-600">
           Don't have an account?{' '}
-          <a href="/signup" className="text-blue-500 hover:text-blue-600">
+          <a href="/login" className="text-gray-500 hover:text-gray-600">
             Sign up
           </a>
         </p>
+
+        <div className="text-center text-sm text-gray-600">
+          Sign Up is currenly disabled for demo purposes
+        </div>
+
+
       </div>
     </div>
   );
