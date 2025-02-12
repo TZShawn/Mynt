@@ -86,7 +86,7 @@ const App: React.FC = () => {
                 element={loggedInUser ? <TransactionsPage /> : <Navigate to="/login" state={{ from: '/transactions' }} />} 
               />
               <Route 
-                path="/trends" 
+                path="/trends/*" 
                 element={loggedInUser ? <TrendsPage /> : <Navigate to="/login" state={{ from: '/trends' }} />} 
               />
               <Route 

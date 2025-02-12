@@ -213,7 +213,9 @@ export const getTransactions = async (event: APIGatewayProxyEvent): Promise<APIG
 
     let accessTokens = user.accessTokens;
     for (let token of accessTokens) {
-      logger.info('Token For: ' + token.bank_name);
+      
+      const accounts = token.accounts.map((account: any) => {return {account_id: account.account_id, name: account.name}});
+
       const accessToken = token.access_token;
       let cursor = null
       if (token.cursor != "") {
@@ -246,7 +248,7 @@ export const getTransactions = async (event: APIGatewayProxyEvent): Promise<APIG
       }
 
       for (const transaction of added) {
-        await addTransaction(userId, transaction);
+        await addTransaction(userId, transaction, accounts);
       }
 
       for (const transaction of modified) {

@@ -10,12 +10,15 @@ import { fetchAuthSession } from "aws-amplify/auth";
 import { FaSync } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import ReactECharts from "echarts-for-react";
+import { Transaction } from "../types";
 
 interface TransactionItem {
   transactionId: string;
   transDate: string;
   transAmount: number;
   transMerchant: string;
+  transAccount: string;
+  hidden: boolean;
 }
 
 const DashboardPage: React.FC = () => {
@@ -58,9 +61,6 @@ const DashboardPage: React.FC = () => {
           parseInt(transaction.transDate.split("-")[0]) === searchYear
       )
       .filter((transaction) => transaction.transAmount > 0);
-
-    console.log(prevMonthTrans);
-    console.log(thisMonthTrans);
 
     for (let i = 1; i <= 31; i++) {
       const lastMonthTransaction = prevMonthTrans
@@ -306,7 +306,7 @@ const DashboardPage: React.FC = () => {
                             new Date(a.transDate).getTime()
                         )
                         .slice(0, 5)
-                        .map((transaction: TransactionItem) => (
+                        .map((transaction: Transaction) => (
                           <tr key={transaction.transactionId}>
                             <td className="py-2 text-sm">
                               <div className="font-medium text-mynt-gray-500">

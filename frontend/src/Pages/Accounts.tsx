@@ -51,7 +51,7 @@ const AccountsPage: React.FC = () => {
   return (
     <div className="max-h-screen bg-mynt-gray-200">
       {/* Header Banner */}
-      <div className="w-full bg-mynt-gray-500 py-3 px-8 mb-6">
+      <div className="w-full bg-mynt-gray-500 py-2 px-8 mb-6">
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-semi-bold text-white">Accounts</h1>
           <div className="text-sm text-red-500">Warning: While in demo env please do not reconnect an existing bank account</div>

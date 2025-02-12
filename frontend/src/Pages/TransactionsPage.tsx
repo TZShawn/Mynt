@@ -35,7 +35,7 @@ const TransactionsPage: React.FC = () => {
                     </div>
           
                     <div className="text-sm text-gray-500 whitespace-nowrap">
-                      {transaction.transCategory.join('/')}
+                      {transaction.transCategory}
                     </div>
                     <div className={`text-sm text-gray-500 whitespace-nowrap text-right ${transaction.transAmount < 0 && 'text-green-500'}`}>
                       {transaction.transAmount < 0 ? `+$${Math.abs(Number(transaction.transAmount.toFixed(2)))}` : `$${transaction.transAmount.toFixed(2)}`}

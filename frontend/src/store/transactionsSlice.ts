@@ -1,13 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-
-interface Transaction {
-    transCategory: string[];
-    transDate: string;
-    transAmount: number;
-    transactionId: string;
-    userId: string;
-    transMerchant: string;
-}
+import { Transaction } from '../types';
 
 interface TransactionsState {
     transactions: Transaction[];

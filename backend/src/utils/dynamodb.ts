@@ -64,12 +64,12 @@ export const updateUser = async (userId: string, user: UserEntry) => {
   await docClient.send(command);
 }
 
-export const addTransaction = async (userId: string, transaction: any) => {
+export const addTransaction = async (userId: string, transaction: any, accounts: any[]) => {
 
   const transactionId = transaction.transaction_id;
   const transactionDate = transaction.date;
   const transactionAmount = transaction.amount;
-  const transactionCategory = transaction.category;
+  const transactionCategory = transaction.category[0] || "Unknown";
   const transactionMerchant = transaction.name;
 
   const formattedTransaction = {
@@ -79,6 +79,8 @@ export const addTransaction = async (userId: string, transaction: any) => {
     transAmount: transactionAmount,
     transCategory: transactionCategory,
     transMerchant: transactionMerchant,
+    hidden: false,
+    transAccount: accounts.find((account: any) => account.account_id === transaction.account_id)?.name || "Unknown",
   }
 
   logger.info('Adding transaction: ' + JSON.stringify(formattedTransaction) + ' for transactionId: ' + transactionId);
