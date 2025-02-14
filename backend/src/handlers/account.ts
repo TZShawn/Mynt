@@ -128,9 +128,7 @@ export const getAccountsInfo = async (
       await updateNetworth(userId, newNetWorthTimeline)
     }
 
-    
-################# CONTINUE HERE ADD THE LOGIC TO GET THE ACCOUNT DATA FOR THE CURRENT DAY #################
-
+    const accountItems = netWorthItems?.networthTimeline.find((entry: any) => entry.date === new Date().toISOString().split("T")[0])
 
     return {
       statusCode: 200,

@@ -102,7 +102,35 @@ functions:
             name: CognitoAuthorizer
             type: COGNITO_USER_POOLS
             arn: !GetAtt CognitoUserPool.Arn
-
+  getAccountData:
+    handler: src/handlers/account.getAccountData
+    events:
+      - http:
+          path: /getAccountData
+          method: post
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt CognitoUserPool.Arn
+  updateUserNetworth:
+    handler: src/handlers/account.updateUserNetworth
+    events:
+      - http:
+          path: /updateUserNetworth
+          method: post
+          cors:
+            origin: '*'
+            allowCredentials: false
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt CognitoUserPool.Arn
   exchangePublicToken:
     handler: src/handlers/plaid.exchangePublicToken
     events:
