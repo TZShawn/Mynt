@@ -8,6 +8,7 @@ const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 const USERS_TABLE = process.env.USER_TABLE!;
 const TRANSACTIONS_TABLE = process.env.TRANSACTIONS_TABLE!;
+const NETWORTH_TABLE = process.env.NETWORTH_TABLE!;
 
 interface SaveUserTokenParams {
   userId: string;
@@ -134,6 +135,39 @@ export const deleteTransaction = async (transactionId: string) => {
   const command = new DeleteCommand({
     TableName: TRANSACTIONS_TABLE,
     Key: { transactionId: transactionId },
+  });
+
+  await docClient.send(command);
+}
+
+export const getNetworth = async (userId: string) => {
+  const command = new GetCommand({
+    TableName: NETWORTH_TABLE,
+    Key: { userId: userId },
+  });
+
+  const result = await docClient.send(command);
+  return result.Item || null;
+}
+
+export const addNetworth = async (userId: string, networth: number) => {
+  const command = new PutCommand({
+    TableName: NETWORTH_TABLE,
+    Item: { userId: userId, networth: networth },
+  });
+
+  await docClient.send(command);
+}
+
+export const updateNetworth = async (userId: string, networthTimeline: any[]) => {
+  const command = new UpdateCommand({
+    TableName: NETWORTH_TABLE,
+    Key: { userId: userId },
+    UpdateExpression: 'SET networthTimeline = :networthTimeline, lastUpdated = :lastUpdated',
+    ExpressionAttributeValues: {
+      ':networthTimeline': networthTimeline,
+      ':lastUpdated': new Date().toISOString().split("T")[0],
+    },
   });
 
   await docClient.send(command);

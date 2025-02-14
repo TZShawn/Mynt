@@ -49,6 +49,8 @@ provider:
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.GOALS_TABLE}/index/*'
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.TRANSACTIONS_TABLE}'
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.TRANSACTIONS_TABLE}/index/*'
+            - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.NETWORTH_TABLE}'
+            - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.NETWORTH_TABLE}/index/*'
         - Effect: Allow
           Action:
             - logs:CreateLogGroup
@@ -213,6 +215,19 @@ resources:
                 KeyType: HASH
             Projection:
               ProjectionType: ALL
+        SSESpecification:
+          SSEEnabled: true
+    NetworthTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.NETWORTH_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:  
+          - AttributeName: userId
+            KeyType: HASH
         SSESpecification:
           SSEEnabled: true
     GoalsTable:

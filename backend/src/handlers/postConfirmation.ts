@@ -17,6 +17,7 @@ interface PlaidAccessToken {
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 const USER_TABLE = process.env.USER_TABLE!;
+const NETWORTH_TABLE = process.env.NETWORTH_TABLE!;
 
 export const handler = async (event: PostConfirmationTriggerEvent) => {
   console.log('PostConfirmation event:', JSON.stringify(event, null, 2));
@@ -47,11 +48,17 @@ export const handler = async (event: PostConfirmationTriggerEvent) => {
       }
     });
 
-    console.log('DynamoDB command:', JSON.stringify(command.input, null, 2));
+    const netWorthCommand = new PutCommand({
+      TableName: NETWORTH_TABLE,
+      Item: {
+        userId,
+        networthTimeline: [],
+        lastUpdated: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString()
+      }
+    });
 
     await docClient.send(command);
-    console.log('Successfully created user record in DynamoDB');
-
+    await docClient.send(netWorthCommand);
     return event;
   } catch (error: any) {
     console.error('Error in post confirmation handler:', error);
