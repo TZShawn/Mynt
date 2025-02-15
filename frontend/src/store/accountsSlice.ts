@@ -1,9 +1,12 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-interface Account {
+export interface Account {
   account_id: string;
   account_name: string;
   account_subtype: string;
+  account_type: string;
+  mask: string;
+  balance: number;
 }
 
 interface AccessToken {
@@ -14,16 +17,30 @@ interface AccessToken {
   last_synced: string;
 }
 
+interface NetworthData {
+  date: string;
+  networth: number;
+  accounts: Account[];
+}
+
 interface AccountsState {
   accessTokens: AccessToken[];
   isLoading: boolean;
   error: string | null;
+  networthHistory: NetworthData[];
+  dateRange: '30' | '60' | '90' | 'custom';
+  customStartDate: string | null;
+  customEndDate: string | null;
 }
 
 const initialState: AccountsState = {
   accessTokens: [],
   isLoading: false,
   error: null,
+  networthHistory: [],
+  dateRange: '30',
+  customStartDate: null,
+  customEndDate: null,
 };
 
 const accountsSlice = createSlice({
@@ -42,8 +59,43 @@ const accountsSlice = createSlice({
       state.error = action.payload;
       state.isLoading = false;
     },
+    setNetworthHistory: (state, action: PayloadAction<NetworthData[]>) => {
+      state.networthHistory = action.payload;
+    },
+    updateCurrentDayNetworth: (state, action: PayloadAction<NetworthData>) => {
+      const today = new Date().toISOString().split('T')[0];
+      const index = state.networthHistory.findIndex(data => data.date.split('T')[0] === today);
+      
+      if (index !== -1) {
+        state.networthHistory[index] = action.payload;
+      } else {
+        state.networthHistory.push(action.payload);
+      }
+    },
+    setDateRange: (state, action: PayloadAction<AccountsState['dateRange']>) => {
+      state.dateRange = action.payload;
+      // Reset custom dates when switching to preset ranges
+      if (action.payload !== 'custom') {
+        state.customStartDate = null;
+        state.customEndDate = null;
+      }
+    },
+    setCustomDateRange: (state, action: PayloadAction<{ startDate: string; endDate: string }>) => {
+      state.customStartDate = action.payload.startDate;
+      state.customEndDate = action.payload.endDate;
+      state.dateRange = 'custom';
+    },
   },
 });
 
-export const { setAccessTokens, setLoading, setError } = accountsSlice.actions;
+export const { 
+  setAccessTokens, 
+  setLoading, 
+  setError, 
+  setNetworthHistory,
+  updateCurrentDayNetworth,
+  setDateRange,
+  setCustomDateRange
+} = accountsSlice.actions;
+
 export default accountsSlice.reducer; 

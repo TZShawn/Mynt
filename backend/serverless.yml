@@ -31,6 +31,7 @@ provider:
     USER_POOL_ID: !Ref CognitoUserPool
     USER_POOL_CLIENT_ID: !Ref CognitoUserPoolClient
     ALLOWED_ORIGINS: ${self:custom.allowedOrigins.${self:provider.stage}}
+    NETWORTH_TABLE: ${self:service}-networth-${self:provider.stage}
   iam:
     role:
       statements:
@@ -113,6 +114,19 @@ functions:
             headers:
               - Content-Type
               - Authorization
+            allowCredentials: false
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt CognitoUserPool.Arn
+  getAccountsInfo:
+    handler: src/handlers/account.getAccountsInfo
+    events:
+      - http:
+          path: /getAccountsInfo
+          method: get
+          cors:
+            origin: '*'
             allowCredentials: false
           authorizer:
             name: CognitoAuthorizer
@@ -253,9 +267,18 @@ resources:
         AttributeDefinitions:
           - AttributeName: userId
             AttributeType: S
+          - AttributeName: date
+            AttributeType: S
         KeySchema:  
           - AttributeName: userId
             KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: date-index
+            KeySchema:
+              - AttributeName: date
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
         SSESpecification:
           SSEEnabled: true
     GoalsTable:

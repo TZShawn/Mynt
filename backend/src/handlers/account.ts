@@ -1,16 +1,10 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { plaidClient } from "../utils/plaid";
 import {
-  saveUserToken,
   getUserToken,
-  addTransaction,
-  updateTransaction,
-  deleteTransaction,
-  updateUser,
-  getDBTransactions,
   getNetworth,
   addNetworth,
-  updateNetworth,
+  updateNetworthItem,
 } from "../utils/dynamodb";
 import { APIResponse, TransactionRequest } from "../types/plaid";
 import { CountryCode, Products } from "plaid";
@@ -70,8 +64,6 @@ export const getAccountsInfo = async (
     }
 
     const token = authHeader.replace("Bearer ", "");
-    // You can verify the JWT token here if needed
-
     const userId = await getUserIdFromToken(token);
     if (!userId) {
       return {
@@ -81,6 +73,22 @@ export const getAccountsInfo = async (
       };
     }
 
+    const {startDate, endDate } = event.queryStringParameters || {}
+
+    // Calculate date range
+    const today = new Date();
+    const defaultEndDate = today.toISOString().split("T")[0];
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    const defaultStartDate = thirtyDaysAgo.toISOString().split("T")[0];
+
+    const dateRange = {
+      startDate: startDate || defaultStartDate,
+      endDate: endDate || defaultEndDate
+    }
+
+    logger.info("Date range:", dateRange);
+
     const userInfo = await getUserToken(userId)
 
     const accessToken = userInfo?.accessTokens
@@ -89,51 +97,62 @@ export const getAccountsInfo = async (
       return {
         statusCode: 401,
         headers: getCorsHeaders(event),
-        body: JSON.stringify({ error: " No access tokens are avaliable" }),
+        body: JSON.stringify({ error: "No access tokens are available" }),
       };
     }
 
-    let netWorthItems = await getNetworth(userId)
+    let netWorthItems = await getNetworth(userId, dateRange) ?? []
+    logger.info("Retrieved networth items: " + JSON.stringify(netWorthItems));
 
-    if (netWorthItems && netWorthItems.lastUpdated.split("T")[0] != new Date().toISOString().split("T")[0]) {
-      let newNetWorthItems = []
+    const todayStr = today.toISOString().split("T")[0];
+    let todayUpdate = await getNetworth(userId, {
+      startDate: todayStr,
+      endDate: todayStr
+    });
+
+    if (todayUpdate.length === 0) {
+      let updatedAccounts = [];
+      let totalNetworth = 0;
 
       for (const token of accessToken) {
         const accountsInfo = await plaidClient.accountsBalanceGet({
-          access_token: token,
+          access_token: token.access_token,
         }).then(res => res.data);
   
-        const accounts = accountsInfo.accounts
+        const accounts = accountsInfo.accounts;
 
         for (const account of accounts) {
-          newNetWorthItems.push({
-            accountId: account.account_id,
-            balance: account.balances.current,
-            currency: account.balances.iso_currency_code,
-            code: account.mask,
-            name: account.name,
-            subtype: account.subtype,
-            type: account.type,
+          const balance = account.balances.current || 0;
+          totalNetworth += balance;
+          updatedAccounts.push({
+            account_id: account.account_id,
+            account_name: account.name,
+            account_subtype: account.subtype || "unknown",
+            account_type: account.type || "unknown",
+            mask: account.mask || "xxxx",
+            balance: balance,
           });
         }
       }
 
-      const formattedEntry = {  
-        date: new Date().toISOString().split("T")[0],
-        networth: newNetWorthItems
-      }
+      const formattedEntry = {
+        userId,
+        date: todayStr,
+        networth: totalNetworth,
+        accounts: updatedAccounts,
+      };
 
-      let newNetWorthTimeline = [...netWorthItems.networthTimeline, formattedEntry]
-      
-      await updateNetworth(userId, newNetWorthTimeline)
+      netWorthItems = [...netWorthItems, formattedEntry];
+      await addNetworth(userId, formattedEntry);
     }
-
-    const accountItems = netWorthItems?.networthTimeline.find((entry: any) => entry.date === new Date().toISOString().split("T")[0])
 
     return {
       statusCode: 200,
       headers: getCorsHeaders(event),
-      body: JSON.stringify(accountItems),
+      body: JSON.stringify({
+        success: true,
+        networthHistory: netWorthItems
+      }),
     };
   } catch (error) {
     console.error("Error in getAccountsInfo:", error);
@@ -179,58 +198,56 @@ export const updateUserNetworth = async (event: APIGatewayProxyEvent): Promise<A
       };
     }
 
-    const netWorthItems = await getNetworth(userId)
+    const todayStr = new Date().toISOString().split("T")[0];
+    const netWorthItems = await getNetworth(userId, {
+      startDate: todayStr,
+      endDate: todayStr
+    });
 
-    if (!netWorthItems) {
-      return {
-        statusCode: 401,
-        headers: getCorsHeaders(event),
-        body: JSON.stringify({ error: "Unauthorized" }),
-      };  
-    }
-
-    let newNetWorthItems = []
+    let updatedAccounts = [];
+    let totalNetworth = 0;
 
     for (const token of userInfo.accessTokens) {
       const accountsInfo = await plaidClient.accountsBalanceGet({
-        access_token: token,
+        access_token: token.access_token,
       }).then(res => res.data);
 
-      const accounts = accountsInfo.accounts
+      const accounts = accountsInfo.accounts;
 
       for (const account of accounts) {
-        newNetWorthItems.push({
-          accountId: account.account_id,
-          balance: account.balances.current,
-          currency: account.balances.iso_currency_code,
-          code: account.mask,
-          name: account.name,
-          subtype: account.subtype,
-          type: account.type,
+        const balance = account.balances.current || 0;
+        totalNetworth += balance;
+        updatedAccounts.push({
+          account_id: account.account_id,
+          account_name: account.name,
+          account_subtype: account.subtype || "unknown",
+          account_type: account.type || "unknown",
+          mask: account.mask || "xxxx",
+          balance: balance,
         });
       }
     }
 
     const formattedEntry = {
-      date: new Date().toISOString().split("T")[0],
-      networth: newNetWorthItems
-    }
+      userId,
+      date: todayStr,
+      networth: totalNetworth,
+      accounts: updatedAccounts,
+    };
 
-    const currentDayIndex = netWorthItems.networthTimeline.findIndex((entry: any) => entry.date === new Date().toISOString().split("T")[0])
-
-    if (currentDayIndex === -1) {
-      newNetWorthItems = [...netWorthItems.networthTimeline, formattedEntry]
+    if (netWorthItems.length === 0) {
+      await addNetworth(userId, formattedEntry);
     } else {
-      newNetWorthItems = [...netWorthItems.networthTimeline]
-      newNetWorthItems[currentDayIndex] = formattedEntry
+      await updateNetworthItem(userId, formattedEntry);
     }
-
-    await updateNetworth(userId, newNetWorthItems)
 
     return {
       statusCode: 200,
       headers: getCorsHeaders(event),
-      body: JSON.stringify({ message: "Networth updated" }),
+      body: JSON.stringify({
+        success: true,
+        networth: formattedEntry
+      }),
     };
   } catch (error) {
     console.error("Error in updateUserNetworth:", error);
@@ -240,5 +257,5 @@ export const updateUserNetworth = async (event: APIGatewayProxyEvent): Promise<A
       body: JSON.stringify({ error: "Internal server error" }),
     };
   }
-}
+};
 

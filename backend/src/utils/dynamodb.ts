@@ -140,34 +140,60 @@ export const deleteTransaction = async (transactionId: string) => {
   await docClient.send(command);
 }
 
-export const getNetworth = async (userId: string) => {
-  const command = new GetCommand({
+interface NetworthEntry {
+  userId: string;
+  date: string;
+  networth: number;
+  accounts: Array<{
+    account_id: string;
+    account_name: string;
+    account_subtype: string;
+    account_type: string;
+    mask: string;
+    balance: number;
+  }>;
+}
+
+export const getNetworth = async (userId: string, dateRange: {startDate: string, endDate: string}) => {
+  const command = new QueryCommand({
     TableName: NETWORTH_TABLE,
-    Key: { userId: userId },
+    KeyConditionExpression: 'userId = :userId',
+    FilterExpression: '#date BETWEEN :startDate AND :endDate',
+    ExpressionAttributeNames: {
+      '#date': 'date'
+    },
+    ExpressionAttributeValues: {
+      ':userId': userId,
+      ':startDate': dateRange.startDate,
+      ':endDate': dateRange.endDate,
+    },
   });
 
   const result = await docClient.send(command);
-  return result.Item || null;
+  return result.Items || [];
 }
 
-export const addNetworth = async (userId: string, networth: number) => {
+export const addNetworth = async (userId: string, networth: NetworthEntry) => {
   const command = new PutCommand({
     TableName: NETWORTH_TABLE,
-    Item: { userId: userId, networth: networth },
+    Item: networth,
   });
 
   await docClient.send(command);
 }
 
-export const updateNetworth = async (userId: string, networthTimeline: any[]) => {
+export const updateNetworthItem = async (userId: string, networthItem: NetworthEntry) => {
   const command = new UpdateCommand({
     TableName: NETWORTH_TABLE,
-    Key: { userId: userId },
-    UpdateExpression: 'SET networthTimeline = :networthTimeline, lastUpdated = :lastUpdated',
-    ExpressionAttributeValues: {
-      ':networthTimeline': networthTimeline,
-      ':lastUpdated': new Date().toISOString().split("T")[0],
+    Key: { 
+      userId: userId,
+      date: networthItem.date
     },
+    UpdateExpression: 'SET networth = :networth, accounts = :accounts',
+    ExpressionAttributeValues: {
+      ':networth': networthItem.networth,
+      ':accounts': networthItem.accounts,
+    }
   });
 
   await docClient.send(command);
