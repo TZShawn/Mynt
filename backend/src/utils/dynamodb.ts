@@ -144,6 +144,7 @@ interface NetworthEntry {
   userId: string;
   date: string;
   networth: number;
+  entryId: string;
   accounts: Array<{
     account_id: string;
     account_name: string;
@@ -155,10 +156,9 @@ interface NetworthEntry {
 }
 
 export const getNetworth = async (userId: string, dateRange: {startDate: string, endDate: string}) => {
-  const command = new QueryCommand({
+  const command = new ScanCommand({
     TableName: NETWORTH_TABLE,
-    KeyConditionExpression: 'userId = :userId',
-    FilterExpression: '#date BETWEEN :startDate AND :endDate',
+    FilterExpression: 'userId = :userId AND #date BETWEEN :startDate AND :endDate',
     ExpressionAttributeNames: {
       '#date': 'date'
     },
@@ -187,12 +187,16 @@ export const updateNetworthItem = async (userId: string, networthItem: NetworthE
     TableName: NETWORTH_TABLE,
     Key: { 
       userId: userId,
-      date: networthItem.date
+      entryId: networthItem.entryId
     },
-    UpdateExpression: 'SET networth = :networth, accounts = :accounts',
+    UpdateExpression: 'SET networth = :networth, accounts = :accounts, #date = :date',
+    ExpressionAttributeNames: {
+      '#date': 'date'
+    },
     ExpressionAttributeValues: {
       ':networth': networthItem.networth,
       ':accounts': networthItem.accounts,
+      ':date': networthItem.date
     }
   });
 

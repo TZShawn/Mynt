@@ -10,7 +10,7 @@ import { APIResponse, TransactionRequest } from "../types/plaid";
 import { CountryCode, Products } from "plaid";
 import { Logger } from "@aws-lambda-powertools/logger/lib/cjs";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
-
+import { v4 as uuidv4 } from 'uuid';
 const logger = new Logger();
 
 const getOrigin = (event: APIGatewayProxyEvent): string => {
@@ -138,6 +138,7 @@ export const getAccountsInfo = async (
       const formattedEntry = {
         userId,
         date: todayStr,
+        entryId: uuidv4(),
         networth: totalNetworth,
         accounts: updatedAccounts,
       };
@@ -231,6 +232,7 @@ export const updateUserNetworth = async (event: APIGatewayProxyEvent): Promise<A
     const formattedEntry = {
       userId,
       date: todayStr,
+      entryId: netWorthItems[0]?.entryId ?? uuidv4(),
       networth: totalNetworth,
       accounts: updatedAccounts,
     };

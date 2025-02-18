@@ -265,18 +265,22 @@ resources:
         TableName: ${self:provider.environment.NETWORTH_TABLE}
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
+          - AttributeName: entryId
+            AttributeType: S
           - AttributeName: userId
             AttributeType: S
           - AttributeName: date
             AttributeType: S
         KeySchema:  
-          - AttributeName: userId
+          - AttributeName: entryId
             KeyType: HASH
         GlobalSecondaryIndexes:
-          - IndexName: date-index
+          - IndexName: userId-date-index
             KeySchema:
-              - AttributeName: date
+              - AttributeName: userId
                 KeyType: HASH
+              - AttributeName: date
+                KeyType: RANGE
             Projection:
               ProjectionType: ALL
         SSESpecification:
