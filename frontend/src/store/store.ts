@@ -3,6 +3,7 @@ import transactionsReducer from './transactionsSlice';
 import accountsReducer from './accountsSlice';
 import plaidReducer from './plaidSlice';
 import authReducer from './authSlice';
+import budgetReducer from './budgetSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     transactions: transactionsReducer,
     accounts: accountsReducer,
     plaid: plaidReducer,
+    budgets: budgetReducer,
   },
 });
 
