@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ReactECharts from "echarts-for-react";
 import type { EChartsOption } from "echarts";
 import { Transaction } from "../types";
+import TransactionRow from "./TrasnactionsRow";
+import { fetchAuthSession } from 'aws-amplify/auth';
 
 interface SpendingModuleProps {
   transactions: Transaction[];
@@ -46,6 +48,38 @@ const PLAID_CATEGORIES = [
 
 const SpendingModule: React.FC<SpendingModuleProps> = ({ transactions }) => {
   const [view, setView] = useState<"Type" | "Merchant">("Type");
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getToken = async () => {
+      const session = await fetchAuthSession();
+      const tk = session.tokens?.idToken?.toString();
+      setToken(tk || null);
+    };
+    getToken();
+  }, []);
+
+  const fetchTransactions = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/transactions`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+      if (!data.success) {
+        console.error("Failed to fetch transactions");
+      }
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+    }
+  };
 
   const processTransactionsData = (
     transactions: Transaction[]
@@ -230,7 +264,12 @@ const SpendingModule: React.FC<SpendingModuleProps> = ({ transactions }) => {
                 <h4 className="text-sm w-full bg-gray-200 font-medium text-mynt-gray-600 p-2 mb-2">{date}</h4>
                 <div className="space-y-2">
                   {dateTransactions.map((transaction) => (
-                    <TransactionItem key={transaction.transactionId} transaction={transaction} />
+                    <TransactionRow 
+                      key={transaction.transactionId} 
+                      transaction={transaction} 
+                      onTransactionUpdated={fetchTransactions}
+                      token={token}
+                    />
                   ))}
                 </div>
               </div>

@@ -291,3 +291,60 @@ export const getTransactions = async (event: APIGatewayProxyEvent): Promise<APIG
     };
   }
 }; 
+
+export const updateTransactionCategory = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  try {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    if (!authHeader) {
+      return {
+        statusCode: 401,
+        headers: getCorsHeaders(event),
+        body: JSON.stringify({ error: 'No authorization header' }),
+      };
+    }
+
+
+    const token = authHeader.replace('Bearer ', '');
+    const userId = await getUserIdFromToken(token);
+
+    if (!userId) {
+      return {
+        statusCode: 401,
+        headers: getCorsHeaders(event),
+        body: JSON.stringify({ error: 'Invalid token or user ID not found' }),
+      };
+    }
+
+    const { transaction, category } = JSON.parse(event.body || '{}');
+
+    const transactions = await getDBTransactions(userId);
+
+    if (!transactions) {
+      return {
+        statusCode: 404,
+        headers: getCorsHeaders(event),
+        body: JSON.stringify({ error: 'Transaction not found' }),
+      };
+    }
+
+    const updatedTransaction = {
+      ...transaction,
+      transCategory: category,
+    };
+
+    await updateTransaction(userId, updatedTransaction);
+
+    return {
+      statusCode: 200,
+      headers: getCorsHeaders(event),
+      body: JSON.stringify({ success: true }),
+    };
+  } catch (error) {
+    console.error('Error updating transaction:', error);
+    return {
+      statusCode: 500,
+      headers: getCorsHeaders(event),
+      body: JSON.stringify({ error: 'Failed to update transaction' }),
+    };
+  }
+};

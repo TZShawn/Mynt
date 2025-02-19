@@ -32,6 +32,7 @@ provider:
     USER_POOL_CLIENT_ID: !Ref CognitoUserPoolClient
     ALLOWED_ORIGINS: ${self:custom.allowedOrigins.${self:provider.stage}}
     NETWORTH_TABLE: ${self:service}-networth-${self:provider.stage}
+    BUDGET_TABLE: ${self:service}-budget-${self:provider.stage}
   iam:
     role:
       statements:
@@ -52,6 +53,8 @@ provider:
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.TRANSACTIONS_TABLE}/index/*'
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.NETWORTH_TABLE}'
             - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.NETWORTH_TABLE}/index/*'
+            - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.BUDGET_TABLE}'
+            - 'arn:aws:dynamodb:${self:provider.region}:${aws:accountId}:table/${self:provider.environment.BUDGET_TABLE}/index/*'
         - Effect: Allow
           Action:
             - logs:CreateLogGroup
@@ -93,6 +96,22 @@ functions:
       - http:
           path: /getUserInfo
           method: get
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt CognitoUserPool.Arn
+  updateTransactionCategory:
+    handler: src/handlers/plaid.updateTransactionCategory
+    events:
+      - http:
+          path: /transactions/update-category
+          method: post
           cors:
             origin: '*'
             headers:
@@ -298,7 +317,19 @@ resources:
             KeyType: HASH
         SSESpecification:
           SSEEnabled: true
-
+    BudgetTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.BUDGET_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: budgetId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: budgetId
+            KeyType: HASH
+        SSESpecification:
+          SSEEnabled: true
     CognitoUserPool:
       Type: AWS::Cognito::UserPool
       Properties:

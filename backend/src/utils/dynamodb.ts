@@ -9,7 +9,7 @@ const docClient = DynamoDBDocumentClient.from(client);
 const USERS_TABLE = process.env.USER_TABLE!;
 const TRANSACTIONS_TABLE = process.env.TRANSACTIONS_TABLE!;
 const NETWORTH_TABLE = process.env.NETWORTH_TABLE!;
-
+const BUDGET_TABLE = process.env.BUDGET_TABLE!;
 interface SaveUserTokenParams {
   userId: string;
   accessTokens: any[];
@@ -70,8 +70,8 @@ export const addTransaction = async (userId: string, transaction: any, accounts:
   const transactionId = transaction.transaction_id;
   const transactionDate = transaction.date;
   const transactionAmount = transaction.amount;
-  const transactionCategory = transaction.category[0] || "Unknown";
-  const transactionMerchant = transaction.name;
+  const transactionCategory = transaction.personal_finance_category.primary || "OTHER";
+  const transactionMerchant = transaction.merchant_name || 'Unknown';
 
   const formattedTransaction = {
     transactionId: String(transactionId),
@@ -106,11 +106,14 @@ export const addTransaction = async (userId: string, transaction: any, accounts:
 }
 
 export const updateTransaction = async (userId: string, transaction: any) => {
-  const transactionId = transaction.transaction_id;
-  const transactionDate = transaction.date;
-  const transactionAmount = transaction.amount;
-  const transactionCategory = transaction.category;
-  const transactionMerchant = transaction.merchant;
+
+  logger.info(JSON.stringify(transaction));
+
+  const transactionId = transaction.transactionId;
+  const transactionDate = transaction.transDate;
+  const transactionAmount = transaction.transAmount;
+  const transactionCategory = transaction.transCategory || "OTHER";
+  const transactionMerchant = transaction.transMerchant || 'Unknown';
 
   const formattedTransaction = {
     transactionId: transactionId,
@@ -119,13 +122,22 @@ export const updateTransaction = async (userId: string, transaction: any) => {
     transAmount: transactionAmount,
     transCategory: transactionCategory,
     transMerchant: transactionMerchant,
-  }
+  } 
+
+  logger.info('Updating transaction: ' + JSON.stringify(formattedTransaction) + ' for transactionId: ' + transactionId);
 
   const command = new UpdateCommand({
     TableName: TRANSACTIONS_TABLE,
-    Key: { transactionId: transactionId },
+    Key: { 
+      transactionId: transactionId,
+    },
     UpdateExpression: 'SET transDate = :transDate, transAmount = :transAmount, transCategory = :transCategory, transMerchant = :transMerchant',
-    ExpressionAttributeValues: formattedTransaction,
+    ExpressionAttributeValues: {
+      ':transDate': transactionDate,
+      ':transAmount': transactionAmount,
+      ':transCategory': transactionCategory,
+      ':transMerchant': transactionMerchant,
+    },
   });
 
   await docClient.send(command);
@@ -215,3 +227,36 @@ export const getDBTransactions = async (userId: string) => {
   const result = await docClient.send(command);
   return result.Items || [];
 }
+
+export const getBudget = async (userId: string) => {
+  const command = new ScanCommand({
+    TableName: BUDGET_TABLE,
+    FilterExpression: 'userId = :userId',
+    ExpressionAttributeValues: {
+      ':userId': userId,
+    },
+  });
+
+  const result = await docClient.send(command);
+  return result.Items || [];
+}
+
+export const addBudget = async (userId: string, budget: any) => {
+  const command = new PutCommand({
+    TableName: BUDGET_TABLE,
+    Item: budget,
+  });
+
+  await docClient.send(command);
+}
+
+export const updateBudget = async (userId: string, budget: any) => {
+  const command = new UpdateCommand({
+    TableName: BUDGET_TABLE,
+    Key: { budgetId: budget.budgetId },
+  });
+
+  await docClient.send(command);
+}
+
+
