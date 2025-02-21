@@ -151,6 +151,7 @@ functions:
             name: CognitoAuthorizer
             type: COGNITO_USER_POOLS
             arn: !GetAtt CognitoUserPool.Arn
+    timeout: 60
   updateUserNetworth:
     handler: src/handlers/account.updateUserNetworth
     events:
@@ -164,6 +165,7 @@ functions:
             name: CognitoAuthorizer
             type: COGNITO_USER_POOLS
             arn: !GetAtt CognitoUserPool.Arn
+    timeout: 60
   exchangePublicToken:
     handler: src/handlers/plaid.exchangePublicToken
     events:
@@ -231,7 +233,69 @@ functions:
           path: /auth/signin
           method: post
           cors: true
-
+  getBudgets:
+    handler: src/handlers/budget.getBudgetsHandler
+    events:
+      - http:
+          path: /budgets/getBudget
+          method: get
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt CognitoUserPool.Arn
+            claims:
+              - email
+              - sub
+              - cognito:username
+            resultTtlInSeconds: 0
+  addBudget:
+    handler: src/handlers/budget.addBudgetHandler
+    events:
+      - http:
+          path: /budgets/addBudget
+          method: post
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt CognitoUserPool.Arn
+            claims:
+              - email
+              - sub
+              - cognito:username
+            resultTtlInSeconds: 0
+  updateBudget:
+    handler: src/handlers/budget.updateBudgetHandler
+    events:
+      - http:
+          path: /budgets/updateBudget
+          method: post
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt CognitoUserPool.Arn
+            claims:
+              - email
+              - sub
+              - cognito:username
+            resultTtlInSeconds: 0
 resources:
   Resources:
     UsersTable:

@@ -125,7 +125,6 @@ const SpendingModule: React.FC<SpendingModuleProps> = ({ transactions }) => {
   };
 
   const spendingData = processTransactionsData(transactions).filter((item) => item.value > 0);
-  console.log(spendingData)
   const totalSpending = spendingData.reduce((acc, item) => acc + item.value, 0);
 
   const getChartOptions = (data: SpendingByCategory[]): EChartsOption => ({

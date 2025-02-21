@@ -20,11 +20,6 @@ const USER_TABLE = process.env.USER_TABLE!;
 const NETWORTH_TABLE = process.env.NETWORTH_TABLE!;
 
 export const handler = async (event: PostConfirmationTriggerEvent) => {
-  console.log('PostConfirmation event:', JSON.stringify(event, null, 2));
-  console.log('Environment variables:', {
-    USER_TABLE,
-    AWS_REGION: process.env.AWS_REGION,
-  });
 
   try {
     const { userAttributes } = event.request;
@@ -32,7 +27,6 @@ export const handler = async (event: PostConfirmationTriggerEvent) => {
     const email = userAttributes.email;
     const password = userAttributes.password;
 
-    console.log('User data to be saved:', { userId, email });
 
     const command = new PutCommand({
       TableName: USER_TABLE,

@@ -33,7 +33,6 @@ const DashboardPage: React.FC = () => {
   //////////////////// MONTHLY SPENDING ////////////////////
   const getMonthlySpending = () => {
     const currentDate = new Date().toISOString().split("T")[0].split("-");
-    console.log(currentDate);
     const currentMonth = parseInt(currentDate[1]);
     const lastMonth = currentMonth - 1 === 0 ? 12 : currentMonth - 1;
     const searchYear =

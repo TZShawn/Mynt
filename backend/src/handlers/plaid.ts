@@ -61,11 +61,13 @@ export const createLinkToken = async (event: APIGatewayProxyEvent): Promise<APIG
       };
     }
 
+    logger.info('Creating link token for user: ' + process.env.PLAID_PRODUCTS);
+
     const response = await plaidClient.linkTokenCreate({
       user: { client_user_id: userId },
       client_name: 'Mynt Budget Tracker',
       products: (process.env.PLAID_PRODUCTS?.split(',').map(p => p.trim()) || ['transactions']) as Products[],
-      country_codes: (process.env.PLAID_COUNTRY_CODES?.split(',').map(c => c.trim()) || ['US']) as CountryCode[],
+      country_codes: (process.env.PLAID_COUNTRY_CODES?.split(',').map(c => c.trim()) || ['CA']) as CountryCode[],
       language: 'en',
     });
     
@@ -119,6 +121,8 @@ export const exchangePublicToken = async (event: APIGatewayProxyEvent): Promise<
     const response = await plaidClient.itemPublicTokenExchange({
       public_token,
     });
+
+    logger.info('Response: ' + JSON.stringify(response.data, null, 2));
 
     const { access_token, item_id } = response.data;
     const date = new Date().toISOString();

@@ -10,7 +10,7 @@ import { APIResponse, TransactionRequest } from "../types/plaid";
 import { CountryCode, Products } from "plaid";
 import { Logger } from "@aws-lambda-powertools/logger/lib/cjs";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 const logger = new Logger();
 
 const getOrigin = (event: APIGatewayProxyEvent): string => {
@@ -73,7 +73,7 @@ export const getAccountsInfo = async (
       };
     }
 
-    const {startDate, endDate } = event.queryStringParameters || {}
+    const { startDate, endDate } = event.queryStringParameters || {};
 
     // Calculate date range
     const today = new Date();
@@ -84,14 +84,14 @@ export const getAccountsInfo = async (
 
     const dateRange = {
       startDate: startDate || defaultStartDate,
-      endDate: endDate || defaultEndDate
-    }
+      endDate: endDate || defaultEndDate,
+    };
 
     logger.info("Date range:", dateRange);
 
-    const userInfo = await getUserToken(userId)
+    const userInfo = await getUserToken(userId);
 
-    const accessToken = userInfo?.accessTokens
+    const accessToken = userInfo?.accessTokens;
 
     if (!accessToken) {
       return {
@@ -101,13 +101,12 @@ export const getAccountsInfo = async (
       };
     }
 
-    let netWorthItems = await getNetworth(userId, dateRange) ?? []
-    logger.info("Retrieved networth items: " + JSON.stringify(netWorthItems));
+    let netWorthItems = (await getNetworth(userId, dateRange)) ?? [];
 
     const todayStr = today.toISOString().split("T")[0];
     let todayUpdate = await getNetworth(userId, {
       startDate: todayStr,
-      endDate: todayStr
+      endDate: todayStr,
     });
 
     if (todayUpdate.length === 0) {
@@ -115,36 +114,58 @@ export const getAccountsInfo = async (
       let totalNetworth = 0;
 
       for (const token of accessToken) {
-        const accountsInfo = await plaidClient.accountsBalanceGet({
-          access_token: token.access_token,
-        }).then(res => res.data);
-  
-        const accounts = accountsInfo.accounts;
+        try {
+          logger.info(
+            "Getting accounts balance for token: " + token.access_token
+          );
+          const accountsInfo = await plaidClient
+            .accountsBalanceGet({
+              access_token: token.access_token,
+            })
+            .then((res) => res.data);
 
-        for (const account of accounts) {
-          const balance = account.balances.current || 0;
-          totalNetworth += balance;
-          updatedAccounts.push({
-            account_id: account.account_id,
-            account_name: account.name,
-            account_subtype: account.subtype || "unknown",
-            account_type: account.type || "unknown",
-            mask: account.mask || "xxxx",
-            balance: balance,
-          });
+          logger.info(
+            "Accounts info: " + JSON.stringify(accountsInfo, null, 2)
+          );
+          const accounts = accountsInfo.accounts;
+
+          for (const account of accounts) {
+            const balance = account.balances.current || 0;
+            totalNetworth += balance;
+            updatedAccounts.push({
+              account_id: account.account_id,
+              account_name: account.name,
+              account_subtype: account.subtype || "unknown",
+              account_type: account.type || "unknown",
+              mask: account.mask || "xxxx",
+              balance: balance,
+            });
+          }
+        } catch (error) {
+          logger.error(
+            "SOMETHING FUCKED UP FOR TOKEN: " +
+              token.access_token +
+              "Error in getAccountsInfo:",
+            error
+          );
+          continue;
         }
       }
 
-      const formattedEntry = {
-        userId,
-        date: todayStr,
-        entryId: uuidv4(),
-        networth: totalNetworth,
-        accounts: updatedAccounts,
-      };
+      if (updatedAccounts.length > 0) {
+        const formattedEntry = {
+          userId,
+          date: todayStr,
+          entryId: uuidv4(),
+          networth: totalNetworth,
+          accounts: updatedAccounts,
+        };
 
-      netWorthItems = [...netWorthItems, formattedEntry];
-      await addNetworth(userId, formattedEntry);
+        netWorthItems = [...netWorthItems, formattedEntry];
+        await addNetworth(userId, formattedEntry);
+      } else {
+        logger.error("No accounts were updated for user: " + userId);
+      }
     }
 
     return {
@@ -152,7 +173,7 @@ export const getAccountsInfo = async (
       headers: getCorsHeaders(event),
       body: JSON.stringify({
         success: true,
-        networthHistory: netWorthItems
+        networthHistory: netWorthItems,
       }),
     };
   } catch (error) {
@@ -165,7 +186,9 @@ export const getAccountsInfo = async (
   }
 };
 
-export const updateUserNetworth = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+export const updateUserNetworth = async (
+  event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
   try {
     const authHeader =
       event.headers.Authorization || event.headers.authorization;
@@ -189,7 +212,7 @@ export const updateUserNetworth = async (event: APIGatewayProxyEvent): Promise<A
       };
     }
 
-    const userInfo = await getUserToken(userId) 
+    const userInfo = await getUserToken(userId);
 
     if (!userInfo) {
       return {
@@ -202,16 +225,18 @@ export const updateUserNetworth = async (event: APIGatewayProxyEvent): Promise<A
     const todayStr = new Date().toISOString().split("T")[0];
     const netWorthItems = await getNetworth(userId, {
       startDate: todayStr,
-      endDate: todayStr
+      endDate: todayStr,
     });
 
     let updatedAccounts = [];
     let totalNetworth = 0;
 
     for (const token of userInfo.accessTokens) {
-      const accountsInfo = await plaidClient.accountsBalanceGet({
-        access_token: token.access_token,
-      }).then(res => res.data);
+      const accountsInfo = await plaidClient
+        .accountsBalanceGet({
+          access_token: token.access_token,
+        })
+        .then((res) => res.data);
 
       const accounts = accountsInfo.accounts;
 
@@ -248,7 +273,7 @@ export const updateUserNetworth = async (event: APIGatewayProxyEvent): Promise<A
       headers: getCorsHeaders(event),
       body: JSON.stringify({
         success: true,
-        networth: formattedEntry
+        networth: formattedEntry,
       }),
     };
   } catch (error) {
@@ -260,4 +285,3 @@ export const updateUserNetworth = async (event: APIGatewayProxyEvent): Promise<A
     };
   }
 };
-

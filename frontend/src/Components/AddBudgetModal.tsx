@@ -38,10 +38,8 @@ const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ open, onClose, onSave }
 
   const handleSave = () => {
     const budget = {
-      budgetId: uuidv4(),
       category,
       budgetedAmount: parseFloat(amount),
-      displayName: subcategories.find(cat => cat.codeName === category)?.displayName
     };
     onSave(budget);
     onClose();

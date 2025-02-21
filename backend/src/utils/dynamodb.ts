@@ -18,7 +18,6 @@ interface SaveUserTokenParams {
 
 const logger = new Logger();
 export const saveUserToken = async (user: SaveUserTokenParams): Promise<void> => {
-  console.log('user', user.userId)
   
   const command = new UpdateCommand({
     TableName: USERS_TABLE,

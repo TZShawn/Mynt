@@ -36,7 +36,6 @@ const TransactionRow: React.FC<{
       }
     }
   
-    console.log(transaction.transCategory);
   
     return (
       <div 

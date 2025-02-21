@@ -86,7 +86,6 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ className = '' }) => 
         throw new Error('No authentication token available');
       }
 
-      console.log('Plaid Link success:', metadata);
       const response = await fetch(`${process.env.REACT_APP_BASE_URL}/plaid/exchange-token`, {
         method: 'POST',
         headers: {
@@ -101,7 +100,6 @@ const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({ className = '' }) => 
       }
 
       const data = await response.json();
-      console.log('Exchange token success:', data);
     } catch (error) {
       console.error('Error exchanging public token:', error);
       dispatch(setError('Failed to connect bank account'));

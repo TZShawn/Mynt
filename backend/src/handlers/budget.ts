@@ -6,12 +6,14 @@ import {
   addNetworth,
   updateNetworthItem,
   getBudget,
+  addBudget,
+  updateBudget,
 } from "../utils/dynamodb";
 import { APIResponse, TransactionRequest } from "../types/plaid";
 import { CountryCode, Products } from "plaid";
 import { Logger } from "@aws-lambda-powertools/logger/lib/cjs";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 const logger = new Logger();
 
 const getOrigin = (event: APIGatewayProxyEvent): string => {
@@ -50,77 +52,131 @@ const getUserIdFromToken = async (token: string): Promise<string | null> => {
   }
 };
 
-export const getBudgets = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    try {
-        const authHeader =
-          event.headers.Authorization || event.headers.authorization;
-        if (!authHeader) {
-          return {
-            statusCode: 401,
-            headers: getCorsHeaders(event),
-            body: JSON.stringify({ error: "No authorization header" }),
-          };
-        }
-    
-        const token = authHeader.replace("Bearer ", "");
-        const userId = await getUserIdFromToken(token);
-        if (!userId) {
-          return {
-            statusCode: 401,
-            headers: getCorsHeaders(event),
-            body: JSON.stringify({ error: "Unauthorized" }),
-          };
-        }
-
-        const budgets = await getBudget(userId);
-        return {
-            statusCode: 200,
-            headers: getCorsHeaders(event),
-            body: JSON.stringify(budgets),
-        };
-    } catch (error) {
-        logger.error("Error getting budgets:", error);
-        return { statusCode: 500, body: JSON.stringify({ error: "Internal server error" }) };
+export const getBudgetsHandler = async (
+  event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
+  try {
+    const authHeader =
+      event.headers.Authorization || event.headers.authorization;
+    if (!authHeader) {
+      return {
+        statusCode: 401,
+        headers: getCorsHeaders(event),
+        body: JSON.stringify({ error: "No authorization header" }),
+      };
     }
-}
 
-export const addBudget = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    try {
-        const authHeader =
-          event.headers.Authorization || event.headers.authorization;
-        if (!authHeader) {
-          return {
-            statusCode: 401,
-            headers: getCorsHeaders(event),
-            body: JSON.stringify({ error: "No authorization header" }),
-          };
-        }
-
-        const token = authHeader.replace("Bearer ", "");
-        const userId = await getUserIdFromToken(token);
-        if (!userId) {
-          return {
-            statusCode: 401,
-            headers: getCorsHeaders(event),
-            body: JSON.stringify({ error: "Unauthorized" }),
-          };
-        }
-
-        const { budget } = JSON.parse(event.body || '{}');
-        const newBudget = {
-            id: uuidv4(),
-            userId,
-            ...budget,
-        };
-
-        await addBudget(userId, newBudget);
-        return {
-            statusCode: 200,
-            headers: getCorsHeaders(event),
-            body: JSON.stringify({ message: "Budget added successfully" }),
-        };
-    } catch (error) {
-        logger.error("Error adding budget:", error);
-        return { statusCode: 500, body: JSON.stringify({ error: "Internal server error" }) };
+    const token = authHeader.replace("Bearer ", "");
+    const userId = await getUserIdFromToken(token);
+    if (!userId) {
+      return {
+        statusCode: 401,
+        headers: getCorsHeaders(event),
+        body: JSON.stringify({ error: "Unauthorized" }),
+      };
     }
-}
+
+    const budgets = await getBudget(userId);
+    return {
+      statusCode: 200,
+      headers: getCorsHeaders(event),
+      body: JSON.stringify(budgets),
+    };
+  } catch (error) {
+    logger.error("Error getting budgets:", error as Error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Internal server error" }),
+    };
+  }
+};
+
+export const addBudgetHandler = async (
+  event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
+  try {
+    const authHeader =
+      event.headers.Authorization || event.headers.authorization;
+    if (!authHeader) {
+      return {
+        statusCode: 401,
+        headers: getCorsHeaders(event),
+        body: JSON.stringify({ error: "No authorization header" }),
+      };
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const userId = await getUserIdFromToken(token);
+    if (!userId) {
+      return {
+        statusCode: 401,
+        headers: getCorsHeaders(event),
+        body: JSON.stringify({ error: "Unauthorized" }),
+      };
+    }
+
+    const { category, budgetedAmount } = JSON.parse(event.body || "{}");
+
+    const newBudget = {
+      budgetId: uuidv4(),
+      userId,
+      category,
+      budgetedAmount,
+    };
+
+
+    await addBudget(userId, newBudget);
+
+    logger.info("Budget added successfully");
+    return {
+      statusCode: 200,
+      headers: getCorsHeaders(event),
+      body: JSON.stringify({ message: "Budget added successfully" }),
+    };
+  } catch (err) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Internal server error" }),
+    };
+  }
+};
+
+export const updateBudgetHandler = async (
+  event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
+  try {
+    const authHeader =
+      event.headers.Authorization || event.headers.authorization;
+    if (!authHeader) {
+      return {
+        statusCode: 401,
+        headers: getCorsHeaders(event),
+        body: JSON.stringify({ error: "No authorization header" }),
+      };
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const userId = await getUserIdFromToken(token);
+    if (!userId) {
+      return {
+        statusCode: 401,
+        headers: getCorsHeaders(event),
+        body: JSON.stringify({ error: "Unauthorized" }),
+      };
+    }
+
+    const { budget } = JSON.parse(event.body || "{}");
+    await updateBudget(userId, budget);
+    return {
+      statusCode: 200,
+      headers: getCorsHeaders(event),
+      body: JSON.stringify({ message: "Budget updated successfully" }),
+    };
+  } catch (err) {
+    logger.error("Error updating budget:", err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Internal server error" }),
+    };
+  }
+};
