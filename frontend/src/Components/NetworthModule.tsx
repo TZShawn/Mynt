@@ -15,8 +15,9 @@ interface NetworthModuleProps {
 
 const NetworthModule: React.FC<NetworthModuleProps> = ({ networthHistory }) => {
   const getChartOptions = (): EChartsOption => {
-    const dates = networthHistory.map(data => data.date.split('T')[0]);
-    const values = networthHistory.map(data => data.networth);
+    const netWorthHistorySlice = networthHistory.slice().sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const dates = netWorthHistorySlice.map(data => data.date.split('T')[0]);
+    const values = netWorthHistorySlice.map(data => data.networth);
 
     return {
       tooltip: {
